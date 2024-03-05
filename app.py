@@ -21,12 +21,13 @@ app = Dash(
 
 cyto_graph = cyto.Cytoscape(
     id="actor-graph",
-    layout={"name": "preset", "fit": True, "animate": False},
+    layout={"name": "cose", "animate": False},
     stylesheet=default_stylesheet,
     minZoom=1 / 30,
     maxZoom=30,
     style={"width": "100%", "height": "600px"},
     wheelSensitivity=0.1,
+    boxSelectionEnabled=True,
 )
 
 add_remove_actor_panel = dbc.Card(
@@ -174,27 +175,21 @@ app.layout = dbc.Container(
                                         dcc.Dropdown(
                                             id="dropdown-layout",
                                             options=[
-                                                "random",
-                                                "grid",
-                                                "circle",
-                                                "concentric",
-                                                "breadthfirst",
-                                                "cose",
-                                                "cose-bilkent",
                                                 "fcose",
+                                                "cose-bilkent",
                                                 "cola",
                                                 "euler",
                                                 "spread",
-                                                "dagre",
-                                                "klay",
+                                                "grid",
+                                                "random",
                                             ],
                                             value=np.random.choice(
                                                 [
                                                     # "cose",
                                                     "cose-bilkent",
                                                     "fcose",
-                                                    "cola",
-                                                    "euler",
+                                                    # "cola",
+                                                    # "euler",
                                                     # "spread",
                                                 ]
                                             ),
@@ -252,8 +247,7 @@ app.layout = dbc.Container(
     Input("actor_add", "n_submit"),
     State("actor_add", "value"),
     State(cyto_graph, "elements"),
-    # prevent_initial_call="initial_duplicate",
-    prevent_initial_call=True,
+    prevent_initial_call="initial_duplicate",
 )
 def add_actor(nclicks, nsubmit, actor, elements):
     query_result = get_actor_relations(actor, database)
@@ -352,7 +346,6 @@ def rm_selected_nodes(_, selected_nodes, elements):
     prevent_initial_call=True,
 )
 def generate_filtered_stylesheet(filter_input, elements):
-    # TODO: update z index as well so that filtered actors are easier to select
     if not filter_input:
         return default_stylesheet
     nodes = get_nodes(elements)
@@ -379,11 +372,11 @@ def generate_filtered_stylesheet(filter_input, elements):
         },
     ]
     on_stylesheet_nodes = [
-        {"selector": f"node[id = '{node_id}']", "style": {"opacity": 1}}
+        {"selector": f"node[id = '{node_id}']", "style": {"opacity": 1, "z-index": 10}}
         for node_id in filtered_nodes
     ]
     on_stylesheet_edges = [
-        {"selector": f"edge[id = '{edge_id}']", "style": {"opacity": 1}}
+        {"selector": f"edge[id = '{edge_id}']", "style": {"opacity": 1, "z-index": 9}}
         for edge_id in filtered_edges
     ]
     stylesheet = stylesheet + off_stylesheet + on_stylesheet_nodes + on_stylesheet_edges
@@ -495,7 +488,9 @@ def displayEdgeData(data_edges, elements):
 
 @app.callback(Output(cyto_graph, "layout"), Input("dropdown-layout", "value"))
 def update_cytoscape_layout(layout):
-    return {"name": layout}
+    patched_layout = Patch()
+    patched_layout["name"] = layout
+    return patched_layout
 
 
 @app.callback(Output("debug-info", "children"), Input(cyto_graph, "elements"))

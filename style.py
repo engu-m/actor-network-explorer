@@ -2,7 +2,8 @@ default_stylesheet = [
     {
         "selector": "node",
         "style": {
-            "content": "data(label)",
+            "content": "data(id)",
+            "z-index": 5,
             "width": 25,
             "height": 25,
             "background-color": "blue",
@@ -53,6 +54,7 @@ default_stylesheet = [
     {
         "selector": "edge",
         "style": {
+            "z-index": 4,
             "width": 2,
             "curve-style": "haystack",
             "line-color": "grey",
