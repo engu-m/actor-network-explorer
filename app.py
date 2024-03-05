@@ -1,27 +1,17 @@
-from xml.dom.minidom import Element
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
-import networkx as nx
-from dash import Dash, Input, Output, State, ctx, dcc, html, Patch
+from dash import Dash, Input, Output, State, dcc, html, Patch
 
 import numpy as np
 import json
 
 from db import database
 from formatting import edge_string, node_string
-from graph import (
-    add_nodes_edges_to_graph,
-    cyto_elements_from_graph,
-)
 from queries import get_actor_relations
 from style import default_stylesheet
 
 cyto.load_extra_layouts()
 
-global g
-g = nx.Graph()
-
-pos = nx.spring_layout(g)
 
 app = Dash(
     __name__,
@@ -198,7 +188,7 @@ app.layout = dbc.Container(
                                             ],
                                             value=np.random.choice(
                                                 [
-                                                    "cose",
+                                                    # "cose",
                                                     "cose-bilkent",
                                                     "fcose",
                                                     "cola",
@@ -213,7 +203,25 @@ app.layout = dbc.Container(
                                             id="debug-info",
                                             style={
                                                 "overflow-y": "scroll",
-                                                "height": "calc(100% - 25px)",
+                                                "height": "calc(33% - 5px)",
+                                                "border": "thin lightgrey solid",
+                                            },
+                                        ),
+                                        html.Pre(
+                                            "",
+                                            id="debug-info-node",
+                                            style={
+                                                "overflow-y": "scroll",
+                                                "height": "calc(33% - 5px)",
+                                                "border": "thin lightgrey solid",
+                                            },
+                                        ),
+                                        html.Pre(
+                                            "",
+                                            id="debug-info-edge",
+                                            style={
+                                                "overflow-y": "scroll",
+                                                "height": "calc(33% - 5px)",
                                                 "border": "thin lightgrey solid",
                                             },
                                         ),
@@ -241,54 +249,47 @@ app.layout = dbc.Container(
     Input("actor_add_button", "n_clicks"),
     Input("actor_add", "n_submit"),
     State("actor_add", "value"),
+    State(cyto_graph, "elements"),
     prevent_initial_call="initial_duplicate",
 )
-def add_actor(nclicks, nsubmit, actor):
-    global g
+def add_actor(nclicks, nsubmit, actor, elements):
     query_result = get_actor_relations(actor, database)
-    g = add_nodes_edges_to_graph(g, query_result)
-    elements = cyto_elements_from_graph(g)
+
+    # make elements iterable if None, e.g. during init
+    if elements is None:
+        elements = []
+    for duo_data in query_result:
+        # sort actors by alphabetical order
+        actor1, actor2 = sorted(
+            [duo_data["main_actor"], duo_data["companion_actor"]], key=lambda x: x["primaryName"]
+        )
+
+        # add actors if not already there
+        for actor in (actor1, actor2):
+            actor_id = actor["primaryName"]
+            if actor_id not in [ele["data"]["id"] for ele in elements]:
+                node_info = {
+                    "id": actor["primaryName"],
+                    "label": actor["primaryName"],
+                }
+                node_info.update(actor)
+                actor_to_add = {"data": node_info}
+                elements.append(actor_to_add)
+
+        # add edge if not already there
+        common_movies = duo_data["common_movies"]
+        element_to_add = {
+            "data": {
+                "id": f"{actor1['primaryName']} , {actor2['primaryName']}",
+                "source": f"{actor1['primaryName']}",
+                "target": f"{actor2['primaryName']}",
+                "common_movies": dict(enumerate(common_movies)),
+            }
+        }
+        if element_to_add not in elements:
+            elements.append(element_to_add)
+
     return elements
-
-
-@app.callback(
-    Output(cyto_graph, "stylesheet", allow_duplicate=True),
-    Input("actor_filter", "value"),
-    prevent_initial_call=True,
-)
-def generate_stylesheet(filter_input):
-    # TODO: update z index as well so that filtered actors are easier to select
-    if not filter_input:
-        return default_stylesheet
-    global g
-    filtered_nodes = [node for node in g.nodes if filter_input.lower() in node.lower()]
-    filtered_edges = [
-        possible_id
-        for edge in g.edges
-        if any(filtered_node in edge for filtered_node in filtered_nodes)
-        for possible_id in (f"{edge[0]}-{edge[1]}", f"{edge[1]}-{edge[0]}")
-    ]
-    stylesheet = default_stylesheet.copy()
-    off_stylesheet = [
-        {"selector": "node", "style": {"opacity": 0.3}},
-        {
-            "selector": "edge",
-            "style": {
-                "opacity": 0.2,
-            },
-        },
-    ]
-    on_stylesheet_nodes = [
-        {"selector": f"node[id = '{node_id}']", "style": {"opacity": 1}}
-        for node_id in filtered_nodes
-    ]
-    on_stylesheet_edges = [
-        {"selector": f"edge[id = '{edge_id}']", "style": {"opacity": 1}}
-        for edge_id in filtered_edges
-    ]
-    stylesheet = stylesheet + off_stylesheet + on_stylesheet_nodes + on_stylesheet_edges
-
-    return stylesheet
 
 
 @app.callback(
@@ -337,9 +338,63 @@ def rm_selected_nodes(_, selected_nodes, elements):
     return rm_node_ids(ids_to_remove, elements)
 
 
+@app.callback(
+    Output(cyto_graph, "stylesheet", allow_duplicate=True),
+    Input("actor_filter", "value"),
+    State(cyto_graph, "elements"),
+    prevent_initial_call=True,
+)
+def generate_filtered_stylesheet(filter_input, elements):
+    # TODO: update z index as well so that filtered actors are easier to select
+    if not filter_input:
+        return default_stylesheet
+    nodes = get_nodes(elements)
+    edges = get_edges(elements)
+    filtered_nodes = [
+        node["data"]["id"] for node in nodes if filter_input.lower() in node["data"]["id"].lower()
+    ]
+    filtered_edges = [
+        edge["data"]["id"]
+        for edge in edges
+        if any(
+            filtered_node in (edge["data"]["source"], edge["data"]["target"])
+            for filtered_node in filtered_nodes
+        )
+    ]
+    stylesheet = default_stylesheet.copy()
+    off_stylesheet = [
+        {"selector": "node", "style": {"opacity": 0.3}},
+        {
+            "selector": "edge",
+            "style": {
+                "opacity": 0.2,
+            },
+        },
+    ]
+    on_stylesheet_nodes = [
+        {"selector": f"node[id = '{node_id}']", "style": {"opacity": 1}}
+        for node_id in filtered_nodes
+    ]
+    on_stylesheet_edges = [
+        {"selector": f"edge[id = '{edge_id}']", "style": {"opacity": 1}}
+        for edge_id in filtered_edges
+    ]
+    stylesheet = stylesheet + off_stylesheet + on_stylesheet_nodes + on_stylesheet_edges
+
+    return stylesheet
+
+
+def get_nodes(elements):
+    return list(filter(lambda x: not x["data"].get("source"), elements))
+
+
+def get_edges(elements):
+    return list(filter(lambda x: x["data"].get("source"), elements))
+
+
 def get_degrees(elements):
-    nodes = list(filter(lambda x: not x["data"].get("source"), elements))
-    edges = list(filter(lambda x: x["data"].get("source"), elements))
+    nodes = get_nodes(elements)
+    edges = get_edges(elements)
 
     # enforce uniqueness
     node_ids = set(map(lambda x: x["data"]["id"], nodes))
@@ -369,23 +424,25 @@ def remove_lonely_actors(_, elements):
     return rm_node_ids(lonely_nodes_ids, elements)
 
 
-def get_single_node_info(data_node):
-    global g
-    nb_connections = g.degree[data_node["id"]]
+def get_single_node_info(data_node, elements):
+    nodes = get_nodes(elements)
+    degrees = get_degrees(elements)
+    nb_connections = degrees[data_node["id"]]
     # add s at the end of the word if required
     s = "s" if nb_connections > 1 else ""
     return html.P(
         [
-            node_string(g.nodes[data_node["id"]]),
+            node_string(data_node),
             html.Br(),
             f"{nb_connections} connection{s} on the graph",
         ]
     )
 
 
-def get_single_edge_info(data_edge):
-    global g
-    common_movies = g.edges[data_edge["source"], data_edge["target"]]["common_movies"]
+def get_single_edge_info(data_edge, elements):
+    edges = get_edges(elements)
+    correct_edge = next(filter(lambda x: x["data"]["id"] == data_edge["id"], edges))
+    common_movies = correct_edge["data"]["common_movies"]
     basic_str = edge_string(common_movies.values())
     lines = basic_str.split("\n")
     html_lines = html.Ul([html.Li(line) for line in lines[1:]])
@@ -405,12 +462,13 @@ def get_single_edge_info(data_edge):
 @app.callback(
     Output("node_info", "children"),
     Input(cyto_graph, "selectedNodeData"),
+    State(cyto_graph, "elements"),
     prevent_initial_call=True,
 )
-def displayNodeData(data_nodes):
+def displayNodeData(data_nodes, elements):
     full_data = []
     for data_element in data_nodes:
-        single_element_info = get_single_node_info(data_element)
+        single_element_info = get_single_node_info(data_element, elements)
         full_data.append(single_element_info)
     return html.Div(full_data)
 
@@ -418,12 +476,13 @@ def displayNodeData(data_nodes):
 @app.callback(
     Output("edge_info", "children"),
     Input(cyto_graph, "selectedEdgeData"),
+    State(cyto_graph, "elements"),
     prevent_initial_call=True,
 )
-def displayEdgeData(data_edges):
+def displayEdgeData(data_edges, elements):
     full_data = []
     for data_element in data_edges:
-        single_element_info = get_single_edge_info(data_element)
+        single_element_info = get_single_edge_info(data_element, elements)
         full_data.append(single_element_info)
     return html.Div(full_data)
 
@@ -436,6 +495,16 @@ def update_cytoscape_layout(layout):
 @app.callback(Output("debug-info", "children"), Input(cyto_graph, "elements"))
 def update_debug_panel(elements):
     return json.dumps(elements, indent=2, ensure_ascii=False)
+
+
+@app.callback(Output("debug-info-node", "children"), Input(cyto_graph, "selectedNodeData"))
+def update_debug_panel_node(nodes_data):
+    return json.dumps(nodes_data, indent=2, ensure_ascii=False)
+
+
+@app.callback(Output("debug-info-edge", "children"), Input(cyto_graph, "selectedEdgeData"))
+def update_debug_panel_edge(edges_data):
+    return json.dumps(edges_data, indent=2, ensure_ascii=False)
 
 
 if __name__ == "__main__":
