@@ -1,0 +1,8 @@
+.vscode
+*.csv
+*.tsv
+*.ipynb
+*.pkl
+__pycache__
+.env
+*.venv
