@@ -1,6 +1,7 @@
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
 from dash import Dash, Input, Output, State, dcc, html, Patch
+from dash.exceptions import PreventUpdate
 
 import numpy as np
 import json
@@ -20,7 +21,7 @@ app = Dash(
 
 cyto_graph = cyto.Cytoscape(
     id="actor-graph",
-    layout={"name": "preset"},
+    layout={"name": "preset", "fit": True, "animate": False},
     stylesheet=default_stylesheet,
     minZoom=1 / 30,
     maxZoom=30,
@@ -87,26 +88,13 @@ info_panel = dbc.Card(
     ],
     body=True,
     className="my-2",
+    style={"overflow-y": "scroll", "max-height": "33vh"},
 )
 
 modebar = html.Div(
     [
         dbc.ButtonGroup(
             [
-                dbc.Button(
-                    children=html.I(
-                        className="fa-solid fa-yin-yang px-1", style={"color": "black"}
-                    ),
-                    id="btn-reverse-selection",
-                    outline=True,
-                ),
-                dbc.Popover(
-                    "Reverse node selection",
-                    target="btn-reverse-selection",
-                    body=True,
-                    trigger="hover",
-                    placement="top",
-                ),
                 dbc.Button(
                     children=html.I(className="fa-solid fa-broom px-1", style={"color": "white"}),
                     id="btn-rm-lonely-nodes",
@@ -123,12 +111,12 @@ modebar = html.Div(
                     children=html.I(
                         className="fa-solid fa-trash-can px-1", style={"color": "white"}
                     ),
-                    id="btn-rm-node",
+                    id="btn-rm-selected-nodes",
                     color="warning",
                 ),
                 dbc.Popover(
                     "Remove selected nodes",
-                    target="btn-rm-node",
+                    target="btn-rm-selected-nodes",
                     body=True,
                     trigger="hover",
                     placement="top",
@@ -338,20 +326,22 @@ def rm_node_ids(ids_to_remove, elements):
 def rm_actor(nclicks, nsubmit, actor, elements):
     """Pressing the red Remove btn or pressing the key enter when
     the input is in focus removes the actor from the graph"""
+    if actor is None:
+        raise PreventUpdate
     return rm_node_ids([actor], elements)
 
 
 @app.callback(
     Output(cyto_graph, "elements", allow_duplicate=True),
-    Input("btn-rm-node", "n_clicks"),
+    Input("btn-rm-selected-nodes", "n_clicks"),
     State(cyto_graph, "selectedNodeData"),
     State(cyto_graph, "elements"),
     prevent_initial_call=True,
 )
 def rm_selected_nodes(_, selected_nodes, elements):
     if not selected_nodes:
-        return elements
-    ids_to_remove = {node["id"] for node in selected_nodes}
+        raise PreventUpdate
+    ids_to_remove = [node["id"] for node in selected_nodes]
     return rm_node_ids(ids_to_remove, elements)
 
 
@@ -441,22 +431,7 @@ def remove_lonely_actors(_, elements):
     return rm_node_ids(lonely_nodes_ids, elements)
 
 
-@app.callback(
-    Output(cyto_graph, "selectedNodeData"),
-    Input("btn-reverse-selection", "n_clicks"),
-    State(cyto_graph, "selectedNodeData"),
-    State(cyto_graph, "elements"),
-    prevent_initial_call=True,
-)
-def reverse_selection(_, selectedNodeData, elements):
-    nodeData = [node["data"] for node in get_nodes(elements)]
-    selectedData = selectedNodeData
-    not_selectedData = list(filter(lambda x: x not in selectedData, nodeData))
-    return not_selectedData
-
-
 def get_single_node_info(data_node, elements):
-    nodes = get_nodes(elements)
     degrees = get_degrees(elements)
     nb_connections = degrees[data_node["id"]]
     # add s at the end of the word if required
