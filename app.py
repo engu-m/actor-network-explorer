@@ -94,6 +94,20 @@ modebar = html.Div(
         dbc.ButtonGroup(
             [
                 dbc.Button(
+                    children=html.I(
+                        className="fa-solid fa-yin-yang px-1", style={"color": "black"}
+                    ),
+                    id="btn-reverse-selection",
+                    outline=True,
+                ),
+                dbc.Popover(
+                    "Reverse node selection",
+                    target="btn-reverse-selection",
+                    body=True,
+                    trigger="hover",
+                    placement="top",
+                ),
+                dbc.Button(
                     children=html.I(className="fa-solid fa-broom px-1", style={"color": "white"}),
                     id="btn-rm-lonely-nodes",
                     color="info",
@@ -193,7 +207,7 @@ app.layout = dbc.Container(
                                                     "fcose",
                                                     "cola",
                                                     "euler",
-                                                    "spread",
+                                                    # "spread",
                                                 ]
                                             ),
                                             clearable=False,
@@ -250,7 +264,8 @@ app.layout = dbc.Container(
     Input("actor_add", "n_submit"),
     State("actor_add", "value"),
     State(cyto_graph, "elements"),
-    prevent_initial_call="initial_duplicate",
+    # prevent_initial_call="initial_duplicate",
+    prevent_initial_call=True,
 )
 def add_actor(nclicks, nsubmit, actor, elements):
     query_result = get_actor_relations(actor, database)
@@ -334,6 +349,8 @@ def rm_actor(nclicks, nsubmit, actor, elements):
     prevent_initial_call=True,
 )
 def rm_selected_nodes(_, selected_nodes, elements):
+    if not selected_nodes:
+        return elements
     ids_to_remove = {node["id"] for node in selected_nodes}
     return rm_node_ids(ids_to_remove, elements)
 
@@ -422,6 +439,20 @@ def remove_lonely_actors(_, elements):
     degrees = get_degrees(elements)
     lonely_nodes_ids = [id for id, deg in degrees.items() if deg == 0]
     return rm_node_ids(lonely_nodes_ids, elements)
+
+
+@app.callback(
+    Output(cyto_graph, "selectedNodeData"),
+    Input("btn-reverse-selection", "n_clicks"),
+    State(cyto_graph, "selectedNodeData"),
+    State(cyto_graph, "elements"),
+    prevent_initial_call=True,
+)
+def reverse_selection(_, selectedNodeData, elements):
+    nodeData = [node["data"] for node in get_nodes(elements)]
+    selectedData = selectedNodeData
+    not_selectedData = list(filter(lambda x: x not in selectedData, nodeData))
+    return not_selectedData
 
 
 def get_single_node_info(data_node, elements):
