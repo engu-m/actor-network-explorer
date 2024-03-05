@@ -1,20 +1,22 @@
+from xml.dom.minidom import Element
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
 import networkx as nx
 from dash import Dash, Input, Output, State, ctx, dcc, html, Patch
+
+import numpy as np
+import json
 
 from db import database
 from formatting import edge_string, node_string
 from graph import (
     add_nodes_edges_to_graph,
     cyto_elements_from_graph,
-    remove_all_nodes_from_graph,
-    remove_lonely_nodes_from_graph,
-    remove_nodes_from_graph,
 )
 from queries import get_actor_relations
 from style import default_stylesheet
 
+cyto.load_extra_layouts()
 
 global g
 g = nx.Graph()
@@ -43,7 +45,7 @@ add_remove_actor_panel = dbc.Card(
                 dbc.Label("Add actors to the graph", html_for="actor_add"),
                 dbc.InputGroup(
                     [
-                        dbc.Input(id="actor_add", type="text", value="Arletty"),
+                        dbc.Input(id="actor_add", type="text", value="Hélène Robert"),
                         dbc.Button(id="actor_add_button", children="Add", color="success"),
                     ]
                 ),
@@ -54,7 +56,7 @@ add_remove_actor_panel = dbc.Card(
                 dbc.Label("Remove actors from the graph", html_for="actor_rm"),
                 dbc.InputGroup(
                     [
-                        dbc.Input(id="actor_rm", type="text", placeholder="Arletty"),
+                        dbc.Input(id="actor_rm", type="text", placeholder="Hélène Robert"),
                         dbc.Button(id="actor_rm_button", children="Remove", color="danger"),
                     ]
                 ),
@@ -167,7 +169,63 @@ app.layout = dbc.Container(
                     md=9,
                 ),
                 dbc.Col(
-                    html.Div([add_remove_actor_panel, filter_panel, info_panel]),
+                    dcc.Tabs(
+                        [
+                            dcc.Tab(
+                                html.Div([add_remove_actor_panel, filter_panel, info_panel]),
+                                label="Update",
+                                value="tab-1",
+                            ),
+                            dcc.Tab(
+                                html.Div(
+                                    [
+                                        dcc.Dropdown(
+                                            id="dropdown-layout",
+                                            options=[
+                                                "random",
+                                                "grid",
+                                                "circle",
+                                                "concentric",
+                                                "breadthfirst",
+                                                "cose",
+                                                "cose-bilkent",
+                                                "fcose",
+                                                "cola",
+                                                "euler",
+                                                "spread",
+                                                "dagre",
+                                                "klay",
+                                            ],
+                                            value=np.random.choice(
+                                                [
+                                                    "cose",
+                                                    "cose-bilkent",
+                                                    "fcose",
+                                                    "cola",
+                                                    "euler",
+                                                    "spread",
+                                                ]
+                                            ),
+                                            clearable=False,
+                                        ),
+                                        html.Pre(
+                                            "",
+                                            id="debug-info",
+                                            style={
+                                                "overflow-y": "scroll",
+                                                "height": "calc(100% - 25px)",
+                                                "border": "thin lightgrey solid",
+                                            },
+                                        ),
+                                    ],
+                                    style={"height": "500px"},
+                                ),
+                                label="Debug",
+                                value="tab-2",
+                            ),
+                        ],
+                        value="tab-2",
+                    ),
                     md=3,
                 ),
             ],
@@ -183,7 +241,7 @@ app.layout = dbc.Container(
     Input("actor_add_button", "n_clicks"),
     Input("actor_add", "n_submit"),
     State("actor_add", "value"),
-    prevent_initial_call=True,
+    prevent_initial_call="initial_duplicate",
 )
 def add_actor(nclicks, nsubmit, actor):
     global g
@@ -199,6 +257,7 @@ def add_actor(nclicks, nsubmit, actor):
     prevent_initial_call=True,
 )
 def generate_stylesheet(filter_input):
+    # TODO: update z index as well so that filtered actors are easier to select
     if not filter_input:
         return default_stylesheet
     global g
@@ -234,53 +293,80 @@ def generate_stylesheet(filter_input):
 
 @app.callback(
     Output(cyto_graph, "elements", allow_duplicate=True),
-    Input("actor_rm_button", "n_clicks"),
-    Input("actor_rm", "n_submit"),
-    State("actor_rm", "value"),
-    prevent_initial_call=True,
-)
-def rm_actor(nclicks, nsubmit, actor):
-    global g
-    g = remove_nodes_from_graph(g, [actor])
-    elements = cyto_elements_from_graph(g)
-    return elements
-
-
-@app.callback(
-    Output(cyto_graph, "elements", allow_duplicate=True),
-    Input("btn-rm-lonely-nodes", "n_clicks"),
-    prevent_initial_call=True,
-)
-def remove_lonely_actors(_):
-    global g
-    g = remove_lonely_nodes_from_graph(g)
-    elements = cyto_elements_from_graph(g)
-    return elements
-
-
-@app.callback(
-    Output(cyto_graph, "elements", allow_duplicate=True),
     Input("btn-rm-all-nodes", "n_clicks"),
     prevent_initial_call=True,
 )
-def remove_all_actors(_):
-    global g
-    g = remove_all_nodes_from_graph(g)
-    elements = cyto_elements_from_graph(g)
+def remove_all_nodes(_):
+    return []
+
+
+def rm_node_ids(ids_to_remove, elements):
+    """Also removes obsolete edges"""
+    for ele in elements[:]:  # make a copy of elements
+        if ele["data"]["id"] in ids_to_remove:
+            # remove node
+            elements.remove(ele)
+        if ele["data"].get("source") in ids_to_remove or ele["data"].get("target") in ids_to_remove:
+            elements.remove(ele)
     return elements
+
+
+@app.callback(
+    Output(cyto_graph, "elements", allow_duplicate=True),
+    Input("actor_rm_button", "n_clicks"),
+    Input("actor_rm", "n_submit"),
+    State("actor_rm", "value"),
+    State(cyto_graph, "elements"),
+    prevent_initial_call=True,
+)
+def rm_actor(nclicks, nsubmit, actor, elements):
+    """Pressing the red Remove btn or pressing the key enter when
+    the input is in focus removes the actor from the graph"""
+    return rm_node_ids([actor], elements)
 
 
 @app.callback(
     Output(cyto_graph, "elements", allow_duplicate=True),
     Input("btn-rm-node", "n_clicks"),
     State(cyto_graph, "selectedNodeData"),
+    State(cyto_graph, "elements"),
     prevent_initial_call=True,
 )
-def rmNodeFromGraph(_, selected_nodes):
-    global g
-    g = remove_nodes_from_graph(g, [node["id"] for node in selected_nodes])
-    elements = cyto_elements_from_graph(g)
-    return elements
+def rm_selected_nodes(_, selected_nodes, elements):
+    ids_to_remove = {node["id"] for node in selected_nodes}
+    return rm_node_ids(ids_to_remove, elements)
+
+
+def get_degrees(elements):
+    nodes = list(filter(lambda x: not x["data"].get("source"), elements))
+    edges = list(filter(lambda x: x["data"].get("source"), elements))
+
+    # enforce uniqueness
+    node_ids = set(map(lambda x: x["data"]["id"], nodes))
+    # edge (a,b) is the same as (b,a)
+    edges_unique = set(
+        {frozenset({edge["data"]["source"], edge["data"]["target"]}) for edge in edges}
+    )
+
+    # initialise degree with 0
+    degrees = dict(zip(node_ids, len(node_ids) * [0]))
+    for edge in edges_unique:
+        src, tgt = edge
+        degrees[src] += 1
+        degrees[tgt] += 1
+    return degrees
+
+
+@app.callback(
+    Output(cyto_graph, "elements", allow_duplicate=True),
+    Input("btn-rm-lonely-nodes", "n_clicks"),
+    State(cyto_graph, "elements"),
+    prevent_initial_call=True,
+)
+def remove_lonely_actors(_, elements):
+    degrees = get_degrees(elements)
+    lonely_nodes_ids = [id for id, deg in degrees.items() if deg == 0]
+    return rm_node_ids(lonely_nodes_ids, elements)
 
 
 def get_single_node_info(data_node):
@@ -340,6 +426,16 @@ def displayEdgeData(data_edges):
         single_element_info = get_single_edge_info(data_element)
         full_data.append(single_element_info)
     return html.Div(full_data)
+
+
+@app.callback(Output(cyto_graph, "layout"), Input("dropdown-layout", "value"))
+def update_cytoscape_layout(layout):
+    return {"name": layout}
+
+
+@app.callback(Output("debug-info", "children"), Input(cyto_graph, "elements"))
+def update_debug_panel(elements):
+    return json.dumps(elements, indent=2, ensure_ascii=False)
 
 
 if __name__ == "__main__":

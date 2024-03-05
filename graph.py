@@ -17,23 +17,6 @@ def add_nodes_edges_to_graph(g: nx.Graph, query_result: List) -> nx.Graph:
     return g
 
 
-def remove_nodes_from_graph(g: nx.Graph, nodes) -> nx.Graph:
-    """Also removes corresponding edges"""
-    g.remove_nodes_from(nodes)
-    return g
-
-
-def remove_lonely_nodes_from_graph(g: nx.Graph) -> nx.Graph:
-    """Removes nodes with no neighbors"""
-    lonely_nodes = [n for n, d in g.degree if d == 0]
-    return remove_nodes_from_graph(g, lonely_nodes)
-
-
-def remove_all_nodes_from_graph(g: nx.Graph) -> nx.Graph:
-    """Removes all nodes"""
-    return remove_nodes_from_graph(g, g.nodes)
-
-
 def cyto_elements_from_graph(g: nx.Graph) -> List:
     pos = nx.spring_layout(g, scale=400)
     graph_degrees = g.degree
