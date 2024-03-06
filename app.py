@@ -20,7 +20,7 @@ app = Dash(
 )
 
 cyto_graph = cyto.Cytoscape(
-    id="actor-graph",
+    id="cyto_graph",
     layout={"name": "cose", "animate": False},
     stylesheet=default_stylesheet,
     minZoom=1 / 30,
@@ -92,48 +92,107 @@ info_panel = dbc.Card(
     style={"overflow-y": "scroll", "max-height": "33vh"},
 )
 
-modebar = html.Div(
+info_modal = html.Div(
     [
         dbc.ButtonGroup(
             [
                 dbc.Button(
-                    children=html.I(className="fa-solid fa-broom px-1", style={"color": "white"}),
-                    id="btn-rm-lonely-nodes",
-                    color="info",
-                ),
-                dbc.Popover(
-                    "Remove lonely nodes",
-                    target="btn-rm-lonely-nodes",
-                    body=True,
-                    trigger="hover",
-                    placement="top",
-                ),
-                dbc.Button(
                     children=html.I(
-                        className="fa-solid fa-trash-can px-1", style={"color": "white"}
+                        className="fa-solid fa-info-circle px-1", style={"color": "black"}
                     ),
-                    id="btn-rm-selected-nodes",
-                    color="warning",
+                    id="btn-helper-open",
+                    color="link",
+                    size="lg",
+                    className="p-0",
                 ),
-                dbc.Popover(
-                    "Remove selected nodes",
-                    target="btn-rm-selected-nodes",
-                    body=True,
-                    trigger="hover",
-                    placement="top",
+                dbc.Modal(
+                    [
+                        dbc.ModalHeader(dbc.ModalTitle("Actor network explorer")),
+                        dbc.ModalBody(
+                            [
+                                """Visually explore relationships between actors with just a few clicks.
+                            
+                            Start by searching for an actor and clicking on the "Add" button.
+                            Two actors are connected in the graph if they both played in at least one movie.
+                            The graph is interactive! You can select and move nodes and edges anywhere.
+                            Selecting a node reveals the number of connections the actor currently \
+                            has in the graph, as well as basic personal information.
+                            Selecting a edge reveals the common movies these two actors have.
+                            You can select simultaneously multiple nodes and edges with Ctrl+click or with a rectangle box selection Ctrl+move.
+                            Remove actors at any time with one of the three buttons in the top \
+                            right-corner, or by specifying his/her name in the right panel then clicking "Remove".
+                            When you add an actor, only his/her relationships are shown, \
+                            but not the ones of those who played with him/her. \
+                            Hence, two people may have played together but share no connection\
+                            on the graph if they were not individually added.
+                            
+                            Disclaimer: the dataset is not exhaustive, some movies/actors may be missing.
+                            
+                            The code lives """,
+                                html.A("here", href="https://github.com/engu-m"),
+                                """ (with other cool projects).
+                            Datasets downloaded and edited from """,
+                                html.A(
+                                    "IMDB",
+                                    href="https://developer.imdb.com/non-commercial-datasets/",
+                                ),
+                                """.
+                            Database stored in MongoDB.
+                            Interface using Dash, Dash Bootstrap Components and Dash Cytoscape
+                            Deployed with [...]
+
+                            © Enguerrand Monard, 2024""",
+                            ],
+                            style={"white-space": "pre-line"},
+                            # Style pre-line: Sequences of white space are collapsed
+                            # Lines are broken at newline characters, at <br>, and as necessary to fill line boxes.
+                        ),
+                        dbc.ModalFooter(
+                            dbc.Button(
+                                "Close", id="btn-helper-close", className="ms-auto", n_clicks=0
+                            )
+                        ),
+                    ],
+                    id="modal",
+                    is_open=False,
+                    size="lg",
                 ),
-                dbc.Button(
-                    children=html.I(className="fa-solid fa-times px-1", style={"color": "white"}),
-                    id="btn-rm-all-nodes",
-                    color="danger",
+            ],
+        )
+    ],
+    className="helper-container position-absolute m-1",
+    style={
+        "top": "0px",
+        "left": "0px",
+    },
+)
+
+
+def modebar_button(btn_id, fa_icon, btn_color, popover):
+    button = dbc.Button(
+        children=html.I(className=f"fa-solid fa-{fa_icon} px-1", style={"color": "white"}),
+        id=btn_id,
+        color=btn_color,
+    )
+    popover = dbc.Popover(
+        popover,
+        target=btn_id,
+        body=True,
+        trigger="hover",
+        placement="top",
+    )
+    return button, popover
+
+
+modebar = html.Div(
+    [
+        dbc.ButtonGroup(
+            [
+                *modebar_button("btn-rm-lonely-nodes", "broom", "info", "Remove lonely nodes"),
+                *modebar_button(
+                    "btn-rm-selected-nodes", "trash-can", "warning", "Remove selected nodes"
                 ),
-                dbc.Popover(
-                    "Remove ALL nodes",
-                    target="btn-rm-all-nodes",
-                    body=True,
-                    trigger="hover",
-                    placement="top",
-                ),
+                *modebar_button("btn-rm-all-nodes", "times", "danger", "Remove ALL nodes"),
             ],
             size="sm",
         )
@@ -145,17 +204,30 @@ modebar = html.Div(
     },
 )
 
+alerts = [
+    dbc.Alert(id="alert-add-success", is_open=False, duration=4000, color="success"),
+    dbc.Alert(id="alert-rm-success", is_open=False, duration=4000, color="success"),
+    dbc.Alert(id="alert-add-none", is_open=False, duration=4000, color="warning"),
+    dbc.Alert(id="alert-rm-none", is_open=False, duration=4000, color="warning"),
+    dbc.Alert(id="alert-add-fail", is_open=False, duration=4000, color="danger"),
+    dbc.Alert(id="alert-rm-fail", is_open=False, duration=4000, color="danger"),
+]
+
 app.layout = dbc.Container(
     [
-        html.H1("Actor graph"),
-        html.Hr(),
         dbc.Row(
             [
+                html.Div(
+                    alerts,
+                    style={"top": "0px", "right": "0px", "width": "25%", "z-index": 100},
+                    className="position-absolute m-1",
+                ),
                 dbc.Col(
                     html.Div(
                         [
                             dcc.Loading(cyto_graph),
                             modebar,
+                            info_modal,
                         ],
                         className="border border-dark rounded m-4 position-relative",
                     ),
@@ -242,11 +314,23 @@ app.layout = dbc.Container(
 
 
 @app.callback(
-    Output(cyto_graph, "elements", allow_duplicate=True),
+    Output("modal", "is_open"),
+    Input("btn-helper-open", "n_clicks"),
+    Input("btn-helper-close", "n_clicks"),
+    State("modal", "is_open"),
+)
+def toggle_modal(n1, n2, is_open):
+    if n1 or n2:
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output("cyto_graph", "elements", allow_duplicate=True),
     Input("actor_add_button", "n_clicks"),
     Input("actor_add", "n_submit"),
     State("actor_add", "value"),
-    State(cyto_graph, "elements"),
+    State("cyto_graph", "elements"),
     prevent_initial_call="initial_duplicate",
 )
 def add_actor(nclicks, nsubmit, actor, elements):
@@ -290,7 +374,7 @@ def add_actor(nclicks, nsubmit, actor, elements):
 
 
 @app.callback(
-    Output(cyto_graph, "elements", allow_duplicate=True),
+    Output("cyto_graph", "elements", allow_duplicate=True),
     Input("btn-rm-all-nodes", "n_clicks"),
     prevent_initial_call=True,
 )
@@ -310,11 +394,11 @@ def rm_node_ids(ids_to_remove, elements):
 
 
 @app.callback(
-    Output(cyto_graph, "elements", allow_duplicate=True),
+    Output("cyto_graph", "elements", allow_duplicate=True),
     Input("actor_rm_button", "n_clicks"),
     Input("actor_rm", "n_submit"),
     State("actor_rm", "value"),
-    State(cyto_graph, "elements"),
+    State("cyto_graph", "elements"),
     prevent_initial_call=True,
 )
 def rm_actor(nclicks, nsubmit, actor, elements):
@@ -322,14 +406,14 @@ def rm_actor(nclicks, nsubmit, actor, elements):
     the input is in focus removes the actor from the graph"""
     if actor is None:
         raise PreventUpdate
-    return rm_node_ids([actor], elements)
+    return rm_node_ids([actor.title()], elements)
 
 
 @app.callback(
-    Output(cyto_graph, "elements", allow_duplicate=True),
+    Output("cyto_graph", "elements", allow_duplicate=True),
     Input("btn-rm-selected-nodes", "n_clicks"),
-    State(cyto_graph, "selectedNodeData"),
-    State(cyto_graph, "elements"),
+    State("cyto_graph", "selectedNodeData"),
+    State("cyto_graph", "elements"),
     prevent_initial_call=True,
 )
 def rm_selected_nodes(_, selected_nodes, elements):
@@ -340,9 +424,9 @@ def rm_selected_nodes(_, selected_nodes, elements):
 
 
 @app.callback(
-    Output(cyto_graph, "stylesheet", allow_duplicate=True),
+    Output("cyto_graph", "stylesheet", allow_duplicate=True),
     Input("actor_filter", "value"),
-    State(cyto_graph, "elements"),
+    State("cyto_graph", "elements"),
     prevent_initial_call=True,
 )
 def generate_filtered_stylesheet(filter_input, elements):
@@ -413,9 +497,9 @@ def get_degrees(elements):
 
 
 @app.callback(
-    Output(cyto_graph, "elements", allow_duplicate=True),
+    Output("cyto_graph", "elements", allow_duplicate=True),
     Input("btn-rm-lonely-nodes", "n_clicks"),
-    State(cyto_graph, "elements"),
+    State("cyto_graph", "elements"),
     prevent_initial_call=True,
 )
 def remove_lonely_actors(_, elements):
@@ -460,8 +544,8 @@ def get_single_edge_info(data_edge, elements):
 
 @app.callback(
     Output("node_info", "children"),
-    Input(cyto_graph, "selectedNodeData"),
-    State(cyto_graph, "elements"),
+    Input("cyto_graph", "selectedNodeData"),
+    State("cyto_graph", "elements"),
     prevent_initial_call=True,
 )
 def displayNodeData(data_nodes, elements):
@@ -474,8 +558,8 @@ def displayNodeData(data_nodes, elements):
 
 @app.callback(
     Output("edge_info", "children"),
-    Input(cyto_graph, "selectedEdgeData"),
-    State(cyto_graph, "elements"),
+    Input("cyto_graph", "selectedEdgeData"),
+    State("cyto_graph", "elements"),
     prevent_initial_call=True,
 )
 def displayEdgeData(data_edges, elements):
@@ -486,24 +570,24 @@ def displayEdgeData(data_edges, elements):
     return html.Div(full_data)
 
 
-@app.callback(Output(cyto_graph, "layout"), Input("dropdown-layout", "value"))
+@app.callback(Output("cyto_graph", "layout"), Input("dropdown-layout", "value"))
 def update_cytoscape_layout(layout):
     patched_layout = Patch()
     patched_layout["name"] = layout
     return patched_layout
 
 
-@app.callback(Output("debug-info", "children"), Input(cyto_graph, "elements"))
+@app.callback(Output("debug-info", "children"), Input("cyto_graph", "elements"))
 def update_debug_panel(elements):
     return json.dumps(elements, indent=2, ensure_ascii=False)
 
 
-@app.callback(Output("debug-info-node", "children"), Input(cyto_graph, "selectedNodeData"))
+@app.callback(Output("debug-info-node", "children"), Input("cyto_graph", "selectedNodeData"))
 def update_debug_panel_node(nodes_data):
     return json.dumps(nodes_data, indent=2, ensure_ascii=False)
 
 
-@app.callback(Output("debug-info-edge", "children"), Input(cyto_graph, "selectedEdgeData"))
+@app.callback(Output("debug-info-edge", "children"), Input("cyto_graph", "selectedEdgeData"))
 def update_debug_panel_edge(edges_data):
     return json.dumps(edges_data, indent=2, ensure_ascii=False)
 

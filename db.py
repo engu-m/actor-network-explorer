@@ -1,6 +1,5 @@
 import os
 import dotenv
-import pickle
 
 
 from pymongo import MongoClient
