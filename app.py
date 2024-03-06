@@ -1,15 +1,19 @@
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
-from dash import Dash, Input, Output, State, dcc, html, Patch
+from dash import Dash, Input, Output, Patch, State, dcc, html
 from dash.exceptions import PreventUpdate
 
-import numpy as np
-import json
-
 from db import database
-from formatting import edge_string, node_string
 from queries import get_actor_relations
 from style import default_stylesheet
+from utils import (
+    get_degrees,
+    get_edges,
+    get_nodes,
+    get_single_edge_info,
+    get_single_node_info,
+    rm_node_ids,
+)
 
 cyto.load_extra_layouts()
 
@@ -21,7 +25,7 @@ app = Dash(
 
 cyto_graph = cyto.Cytoscape(
     id="cyto_graph",
-    layout={"name": "cose", "animate": False},
+    layout={"name": "fcose", "animate": False},
     stylesheet=default_stylesheet,
     minZoom=1 / 30,
     maxZoom=30,
@@ -204,24 +208,10 @@ modebar = html.Div(
     },
 )
 
-alerts = [
-    dbc.Alert(id="alert-add-success", is_open=False, duration=4000, color="success"),
-    dbc.Alert(id="alert-rm-success", is_open=False, duration=4000, color="success"),
-    dbc.Alert(id="alert-add-none", is_open=False, duration=4000, color="warning"),
-    dbc.Alert(id="alert-rm-none", is_open=False, duration=4000, color="warning"),
-    dbc.Alert(id="alert-add-fail", is_open=False, duration=4000, color="danger"),
-    dbc.Alert(id="alert-rm-fail", is_open=False, duration=4000, color="danger"),
-]
-
 app.layout = dbc.Container(
     [
         dbc.Row(
             [
-                html.Div(
-                    alerts,
-                    style={"top": "0px", "right": "0px", "width": "25%", "z-index": 100},
-                    className="position-absolute m-1",
-                ),
                 dbc.Col(
                     html.Div(
                         [
@@ -234,75 +224,7 @@ app.layout = dbc.Container(
                     md=9,
                 ),
                 dbc.Col(
-                    dcc.Tabs(
-                        [
-                            dcc.Tab(
-                                html.Div([add_remove_actor_panel, filter_panel, info_panel]),
-                                label="Update",
-                                value="tab-1",
-                            ),
-                            dcc.Tab(
-                                html.Div(
-                                    [
-                                        dcc.Dropdown(
-                                            id="dropdown-layout",
-                                            options=[
-                                                "fcose",
-                                                "cose-bilkent",
-                                                "cola",
-                                                "euler",
-                                                "spread",
-                                                "grid",
-                                                "random",
-                                            ],
-                                            value=np.random.choice(
-                                                [
-                                                    # "cose",
-                                                    "cose-bilkent",
-                                                    "fcose",
-                                                    # "cola",
-                                                    # "euler",
-                                                    # "spread",
-                                                ]
-                                            ),
-                                            clearable=False,
-                                        ),
-                                        html.Pre(
-                                            "",
-                                            id="debug-info",
-                                            style={
-                                                "overflow-y": "scroll",
-                                                "height": "calc(33% - 5px)",
-                                                "border": "thin lightgrey solid",
-                                            },
-                                        ),
-                                        html.Pre(
-                                            "",
-                                            id="debug-info-node",
-                                            style={
-                                                "overflow-y": "scroll",
-                                                "height": "calc(33% - 5px)",
-                                                "border": "thin lightgrey solid",
-                                            },
-                                        ),
-                                        html.Pre(
-                                            "",
-                                            id="debug-info-edge",
-                                            style={
-                                                "overflow-y": "scroll",
-                                                "height": "calc(33% - 5px)",
-                                                "border": "thin lightgrey solid",
-                                            },
-                                        ),
-                                    ],
-                                    style={"height": "500px"},
-                                ),
-                                label="Debug",
-                                value="tab-2",
-                            ),
-                        ],
-                        value="tab-2",
-                    ),
+                    html.Div([add_remove_actor_panel, filter_panel, info_panel]),
                     md=3,
                 ),
             ],
@@ -334,6 +256,8 @@ def toggle_modal(n1, n2, is_open):
     prevent_initial_call="initial_duplicate",
 )
 def add_actor(nclicks, nsubmit, actor, elements):
+    """Clicking the green Add btn or pressing the key enter when
+    the input is in focus adds the actor to the graph"""
     query_result = get_actor_relations(actor, database)
 
     # make elements iterable if None, e.g. during init
@@ -382,17 +306,6 @@ def remove_all_nodes(_):
     return []
 
 
-def rm_node_ids(ids_to_remove, elements):
-    """Also removes obsolete edges"""
-    for ele in elements[:]:  # make a copy of elements
-        if ele["data"]["id"] in ids_to_remove:
-            # remove node
-            elements.remove(ele)
-        if ele["data"].get("source") in ids_to_remove or ele["data"].get("target") in ids_to_remove:
-            elements.remove(ele)
-    return elements
-
-
 @app.callback(
     Output("cyto_graph", "elements", allow_duplicate=True),
     Input("actor_rm_button", "n_clicks"),
@@ -402,7 +315,7 @@ def rm_node_ids(ids_to_remove, elements):
     prevent_initial_call=True,
 )
 def rm_actor(nclicks, nsubmit, actor, elements):
-    """Pressing the red Remove btn or pressing the key enter when
+    """Clicking the red Remove btn or pressing the key enter when
     the input is in focus removes the actor from the graph"""
     if actor is None:
         raise PreventUpdate
@@ -468,34 +381,6 @@ def generate_filtered_stylesheet(filter_input, elements):
     return stylesheet
 
 
-def get_nodes(elements):
-    return list(filter(lambda x: not x["data"].get("source"), elements))
-
-
-def get_edges(elements):
-    return list(filter(lambda x: x["data"].get("source"), elements))
-
-
-def get_degrees(elements):
-    nodes = get_nodes(elements)
-    edges = get_edges(elements)
-
-    # enforce uniqueness
-    node_ids = set(map(lambda x: x["data"]["id"], nodes))
-    # edge (a,b) is the same as (b,a)
-    edges_unique = set(
-        {frozenset({edge["data"]["source"], edge["data"]["target"]}) for edge in edges}
-    )
-
-    # initialise degree with 0
-    degrees = dict(zip(node_ids, len(node_ids) * [0]))
-    for edge in edges_unique:
-        src, tgt = edge
-        degrees[src] += 1
-        degrees[tgt] += 1
-    return degrees
-
-
 @app.callback(
     Output("cyto_graph", "elements", allow_duplicate=True),
     Input("btn-rm-lonely-nodes", "n_clicks"),
@@ -506,40 +391,6 @@ def remove_lonely_actors(_, elements):
     degrees = get_degrees(elements)
     lonely_nodes_ids = [id for id, deg in degrees.items() if deg == 0]
     return rm_node_ids(lonely_nodes_ids, elements)
-
-
-def get_single_node_info(data_node, elements):
-    degrees = get_degrees(elements)
-    nb_connections = degrees[data_node["id"]]
-    # add s at the end of the word if required
-    s = "s" if nb_connections > 1 else ""
-    return html.P(
-        [
-            node_string(data_node),
-            html.Br(),
-            f"{nb_connections} connection{s} on the graph",
-        ]
-    )
-
-
-def get_single_edge_info(data_edge, elements):
-    edges = get_edges(elements)
-    correct_edge = next(filter(lambda x: x["data"]["id"] == data_edge["id"], edges))
-    common_movies = correct_edge["data"]["common_movies"]
-    basic_str = edge_string(common_movies.values())
-    lines = basic_str.split("\n")
-    html_lines = html.Ul([html.Li(line) for line in lines[1:]])
-    return html.P(
-        [
-            f"{data_edge['source']} <---> {data_edge['target']}",
-            html.Br(),
-            data_edge["id"],
-            html.Br(),
-            lines[0],
-            html.Br(),
-            html_lines,
-        ]
-    )
 
 
 @app.callback(
@@ -568,28 +419,6 @@ def displayEdgeData(data_edges, elements):
         single_element_info = get_single_edge_info(data_element, elements)
         full_data.append(single_element_info)
     return html.Div(full_data)
-
-
-@app.callback(Output("cyto_graph", "layout"), Input("dropdown-layout", "value"))
-def update_cytoscape_layout(layout):
-    patched_layout = Patch()
-    patched_layout["name"] = layout
-    return patched_layout
-
-
-@app.callback(Output("debug-info", "children"), Input("cyto_graph", "elements"))
-def update_debug_panel(elements):
-    return json.dumps(elements, indent=2, ensure_ascii=False)
-
-
-@app.callback(Output("debug-info-node", "children"), Input("cyto_graph", "selectedNodeData"))
-def update_debug_panel_node(nodes_data):
-    return json.dumps(nodes_data, indent=2, ensure_ascii=False)
-
-
-@app.callback(Output("debug-info-edge", "children"), Input("cyto_graph", "selectedEdgeData"))
-def update_debug_panel_edge(edges_data):
-    return json.dumps(edges_data, indent=2, ensure_ascii=False)
 
 
 if __name__ == "__main__":
