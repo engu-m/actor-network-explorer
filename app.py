@@ -25,7 +25,8 @@ app = Dash(
 
 cyto_graph = cyto.Cytoscape(
     id="cyto_graph",
-    layout={"name": "fcose", "animate": False},
+    # TODO : find optimal layout and parameters with sliders in dev branch
+    layout={"name": "fcose", "animate": "end"},
     stylesheet=default_stylesheet,
     minZoom=1 / 30,
     maxZoom=30,
@@ -41,7 +42,7 @@ add_remove_actor_panel = dbc.Card(
                 dbc.Label("Add actors to the graph", html_for="actor_add"),
                 dbc.InputGroup(
                     [
-                        dbc.Input(id="actor_add", type="text", value="Hélène Robert"),
+                        dbc.Input(id="actor_add", type="text", value="Kevin Bacon"),
                         dbc.Button(id="actor_add_button", children="Add", color="success"),
                     ]
                 ),
@@ -52,7 +53,7 @@ add_remove_actor_panel = dbc.Card(
                 dbc.Label("Remove actors from the graph", html_for="actor_rm"),
                 dbc.InputGroup(
                     [
-                        dbc.Input(id="actor_rm", type="text", placeholder="Hélène Robert"),
+                        dbc.Input(id="actor_rm", type="text", placeholder="Kevin Bacon"),
                         dbc.Button(id="actor_rm_button", children="Remove", color="danger"),
                     ]
                 ),
@@ -70,7 +71,7 @@ filter_panel = dbc.Card(
                 dbc.Label("Filter actors on the graph", html_for="actor_filter"),
                 dbc.InputGroup(
                     [
-                        dbc.Input(id="actor_filter", type="text", placeholder="Alain Delon"),
+                        dbc.Input(id="actor_filter", type="text", placeholder="John Malkovich"),
                         dbc.InputGroupText(html.I(className="fa-solid fa-filter")),
                     ]
                 ),
@@ -85,7 +86,7 @@ info_panel = dbc.Card(
     [
         html.Div(
             [
-                dbc.Label("Click on a node/edge to get information"),
+                dbc.Label("Select an actor/relationship to get information"),
                 html.Div(id="node_info", children=""),
                 html.Div(id="edge_info", children=""),
             ]
@@ -129,6 +130,7 @@ info_modal = html.Div(
                             but not the ones of those who played with him/her. \
                             Hence, two people may have played together but share no connection\
                             on the graph if they were not individually added.
+                            Finally, filter the view more easily with the automatic filter text input.
                             
                             Disclaimer: the dataset is not exhaustive, some movies/actors may be missing.
                             
