@@ -22,6 +22,8 @@ app = Dash(
     __name__,
     external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.FONT_AWESOME],
 )
+app.title = "Actor network explorer"
+server = app.server
 
 cyto_graph = cyto.Cytoscape(
     id="cyto_graph",
@@ -145,7 +147,13 @@ info_modal = html.Div(
                                 """.
                             Database stored in MongoDB.
                             Interface using Dash, Dash Bootstrap Components and Dash Cytoscape
-                            Deployed with [...]
+                            Favicon:""",
+                                html.A(
+                                    "Share icons created by Smashicons - Flaticon",
+                                    href="https://www.flaticon.com/free-icons/share",
+                                ),
+                                """
+                                Deployed with [...]
 
                             © Enguerrand Monard, 2024""",
                             ],
