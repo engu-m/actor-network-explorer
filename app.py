@@ -153,7 +153,7 @@ info_modal = html.Div(
                                     href="https://www.flaticon.com/free-icons/share",
                                 ),
                                 """
-                                Deployed with [...]
+                                Deployed with Koyeb
 
                             © Enguerrand Monard, 2024""",
                             ],
