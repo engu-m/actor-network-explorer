@@ -1,0 +1,7 @@
+certifi==2024.2.2
+dash==2.16.0
+dash_bootstrap_components==1.5.0
+dash_cytoscape==1.0.0
+pymongo==4.6.2
+python-dotenv==1.0.1
+gunicorn==21.2.0

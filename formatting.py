@@ -2,7 +2,7 @@ import math
 
 
 def deathYear_parser(deathYear: float):
-    if math.isnan(deathYear):
+    if not deathYear or math.isnan(deathYear):
         return ""
     else:
         return int(deathYear)
