@@ -2,6 +2,9 @@ import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
 from dash import Dash, Input, Output, Patch, State, dcc, html
 from dash.exceptions import PreventUpdate
+import numpy as np
+
+import json
 
 from db import database
 from queries import get_actor_relations, get_random_actor, get_actor_info_basic
@@ -237,7 +240,85 @@ app.layout = dbc.Container(
                     md=9,
                 ),
                 dbc.Col(
-                    html.Div([add_remove_actor_panel, filter_panel, info_panel]),
+                    dcc.Tabs(
+                        [
+                            dcc.Tab(
+                                html.Div([add_remove_actor_panel, filter_panel, info_panel]),
+                                label="Update",
+                                value="tab-1",
+                            ),
+                            dcc.Tab(
+                                html.Div(
+                                    [
+                                        "Layout",
+                                        dcc.Dropdown(
+                                            id="dropdown-layout",
+                                            options=[
+                                                "random",
+                                                "grid",
+                                                "circle",
+                                                "concentric",
+                                                "breadthfirst",
+                                                "cose",
+                                                "cose-bilkent",
+                                                "fcose",
+                                                "cola",
+                                                "euler",
+                                                "spread",
+                                                "dagre",
+                                                "klay",
+                                            ],
+                                            value=np.random.choice(
+                                                [
+                                                    # "cose",
+                                                    "cose-bilkent",
+                                                    "fcose",
+                                                    "cola",
+                                                    "euler",
+                                                    "spread",
+                                                ]
+                                            ),
+                                            clearable=False,
+                                        ),
+                                        "Full graph",
+                                        html.Pre(
+                                            "",
+                                            id="debug-info",
+                                            style={
+                                                "overflow-y": "scroll",
+                                                "height": "calc(33% - 5px)",
+                                                "border": "thin lightgrey solid",
+                                            },
+                                        ),
+                                        "Node info",
+                                        html.Pre(
+                                            "",
+                                            id="debug-info-node",
+                                            style={
+                                                "overflow-y": "scroll",
+                                                "height": "calc(33% - 5px)",
+                                                "border": "thin lightgrey solid",
+                                            },
+                                        ),
+                                        "Edge info",
+                                        html.Pre(
+                                            "",
+                                            id="debug-info-edge",
+                                            style={
+                                                "overflow-y": "scroll",
+                                                "height": "calc(33% - 5px)",
+                                                "border": "thin lightgrey solid",
+                                            },
+                                        ),
+                                    ],
+                                    style={"height": "500px"},
+                                ),
+                                label="Debug",
+                                value="tab-2",
+                            ),
+                        ],
+                        value="tab-2",
+                    ),
                     md=3,
                 ),
             ],
@@ -467,6 +548,26 @@ def displayEdgeData(data_edges, elements):
         single_element_info = get_single_edge_info(data_element, elements)
         full_data.append(single_element_info)
     return html.Div(full_data)
+
+
+@app.callback(Output(cyto_graph, "layout"), Input("dropdown-layout", "value"))
+def update_cytoscape_layout(layout):
+    return {"name": layout}
+
+
+@app.callback(Output("debug-info", "children"), Input(cyto_graph, "elements"))
+def update_debug_panel(elements):
+    return json.dumps(elements, indent=2, ensure_ascii=False)
+
+
+@app.callback(Output("debug-info-node", "children"), Input(cyto_graph, "selectedNodeData"))
+def update_debug_panel_node(nodes_data):
+    return json.dumps(nodes_data, indent=2, ensure_ascii=False)
+
+
+@app.callback(Output("debug-info-edge", "children"), Input(cyto_graph, "selectedEdgeData"))
+def update_debug_panel_edge(edges_data):
+    return json.dumps(edges_data, indent=2, ensure_ascii=False)
 
 
 if __name__ == "__main__":
