@@ -44,7 +44,7 @@ add_remove_actor_panel = dbc.Card(
                 dbc.Label("Add actors to the graph", html_for="actor_add"),
                 dbc.InputGroup(
                     [
-                        dbc.Input(id="actor_add", type="text", value="Kevin Bacon"),
+                        dbc.Input(id="actor_add", type="text", placeholder="Will Smith"),
                         dbc.Button(id="actor_add_button", children="Add", color="success"),
                     ]
                 ),
@@ -55,7 +55,7 @@ add_remove_actor_panel = dbc.Card(
                 dbc.Label("Remove actors from the graph", html_for="actor_rm"),
                 dbc.InputGroup(
                     [
-                        dbc.Input(id="actor_rm", type="text", placeholder="Kevin Bacon"),
+                        dbc.Input(id="actor_rm", type="text", placeholder="Will Smith"),
                         dbc.Button(id="actor_rm_button", children="Remove", color="danger"),
                     ]
                 ),
@@ -73,7 +73,7 @@ filter_panel = dbc.Card(
                 dbc.Label("Filter actors on the graph", html_for="actor_filter"),
                 dbc.InputGroup(
                     [
-                        dbc.Input(id="actor_filter", type="text", placeholder="John Malkovich"),
+                        dbc.Input(id="actor_filter", type="text", placeholder="Angelina Jolie"),
                         dbc.InputGroupText(html.I(className="fa-solid fa-filter")),
                     ]
                 ),
@@ -117,16 +117,18 @@ info_modal = html.Div(
                         dbc.ModalHeader(dbc.ModalTitle("Actor network explorer")),
                         dbc.ModalBody(
                             [
-                                """Visually explore relationships between actors with just a few clicks.
+                                """Draw co-stardom networks with just a few clicks.
+                            Works best on Desktop.
                             
-                            Start by searching for an actor and clicking on the "Add" button.
+                            Get started by searching for your favorite actor and clicking on the "Add" button, \
+                            or by hitting the 🎲 button.
                             Two actors are connected in the graph if they both played in at least one movie.
                             The graph is interactive! You can select and move nodes and edges anywhere.
                             Selecting a node reveals the number of connections the actor currently \
                             has in the graph, as well as basic personal information.
                             Selecting a edge reveals the common movies these two actors have.
                             You can select simultaneously multiple nodes and edges with Ctrl+click or with a rectangle box selection Ctrl+move.
-                            Remove actors at any time with one of the three buttons in the top \
+                            Remove actors with one of the three right-most buttons in the top \
                             right-corner, or by specifying his/her name in the right panel then clicking "Remove".
                             When you add an actor, only his/her relationships are shown, \
                             but not the ones of those who played with him/her. \
@@ -168,7 +170,7 @@ info_modal = html.Div(
                         ),
                     ],
                     id="modal",
-                    is_open=False,
+                    is_open=True,
                     size="lg",
                 ),
             ],
@@ -264,7 +266,7 @@ def toggle_modal(n1, n2, is_open):
     Input("actor_add", "n_submit"),
     State("actor_add", "value"),
     State("cyto_graph", "elements"),
-    prevent_initial_call="initial_duplicate",
+    prevent_initial_call=True,
 )
 def add_actor(nclicks, nsubmit, actor, elements):
     """Clicking the green Add btn or pressing the key enter when
