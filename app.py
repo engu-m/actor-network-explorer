@@ -4,7 +4,7 @@ from dash import Dash, Input, Output, Patch, State, dcc, html
 from dash.exceptions import PreventUpdate
 
 from db import database
-from queries import get_actor_relations
+from queries import get_actor_relations, get_random_actor
 from style import default_stylesheet
 from utils import (
     get_degrees,
@@ -202,6 +202,7 @@ modebar = html.Div(
     [
         dbc.ButtonGroup(
             [
+                *modebar_button("btn-add-random-actor", "dice", "dark", "Add random actor"),
                 *modebar_button("btn-rm-lonely-nodes", "broom", "info", "Remove lonely nodes"),
                 *modebar_button(
                     "btn-rm-selected-nodes", "trash-can", "warning", "Remove selected nodes"
@@ -389,6 +390,18 @@ def generate_filtered_stylesheet(filter_input, elements):
     stylesheet = stylesheet + off_stylesheet + on_stylesheet_nodes + on_stylesheet_edges
 
     return stylesheet
+
+
+@app.callback(
+    Output("cyto_graph", "elements", allow_duplicate=True),
+    Input("btn-add-random-actor", "n_clicks"),
+    State("cyto_graph", "elements"),
+    prevent_initial_call=True,
+)
+def add_random_actor(_, elements):
+    random_actor = get_random_actor(database)
+    elements = add_actor(None, None, random_actor, elements)
+    return elements
 
 
 @app.callback(

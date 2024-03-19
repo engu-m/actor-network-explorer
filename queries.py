@@ -104,3 +104,10 @@ def actor_relations_query(actor_name):
 def get_actor_relations(actor_name, db):
     pipeline = actor_relations_query(actor_name)
     return list(db["name_basics"].aggregate(pipeline))
+
+
+def get_random_actor(db):
+    pipeline = [{"$sample": {"size": 1}}]
+    first_result = next(db["name_basics"].aggregate(pipeline))
+    actor_name = first_result["primaryName"]
+    return actor_name
