@@ -12,7 +12,7 @@ def node_string(node_info: dict):
     pName = node_info["primaryName"]
     birthYear = int(node_info["birthYear"])
     deathYear = deathYear_parser(node_info["deathYear"])
-    sex = "M" if node_info["category"] == "actor" else "F"
+    sex = "M" if node_info["primaryProfession"] == "actor" else "F"
     node_str = "\n".join([pName, f"({birthYear}-{deathYear})"])
     return node_str
 
