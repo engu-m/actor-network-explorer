@@ -4,7 +4,7 @@ from dash import Dash, Input, Output, Patch, State, dcc, html
 from dash.exceptions import PreventUpdate
 
 from db import database
-from queries import get_actor_relations, get_random_actor
+from queries import get_actor_relations, get_random_actor, get_actor_info_basic
 from style import default_stylesheet
 from utils import (
     get_degrees,
@@ -274,6 +274,29 @@ def add_actor(nclicks, nsubmit, actor, elements):
     # make elements iterable if None, e.g. during init
     if elements is None:
         elements = []
+
+    # actor did not play with anyone
+    if not query_result:
+        # try to retrieve basic info on actor
+        actor_info = get_actor_info_basic(actor, database)
+
+        # check actor exists
+        if not actor_info:
+            # actor not found
+            return elements
+
+        for actor_entry in actor_info:
+            actor_id = actor_entry["primaryName"]
+            if actor_id not in [ele["data"]["id"] for ele in elements]:
+                node_info = {
+                    "id": actor_entry["primaryName"],
+                    "label": actor_entry["primaryName"],
+                }
+                node_info.update(actor_entry)
+                actor_to_add = {"data": node_info}
+                elements.append(actor_to_add)
+            return elements
+
     for duo_data in query_result:
         # sort actors by alphabetical order
         actor1, actor2 = sorted(

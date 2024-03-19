@@ -3,7 +3,15 @@ def actor_selection(actor_name):
 
 
 giga_query = [
-    {"$project": {"_id": 1, "primaryName": 1, "birthYear": 1, "deathYear": 1}},
+    {
+        "$project": {
+            "_id": 1,
+            "primaryName": 1,
+            "birthYear": 1,
+            "deathYear": 1,
+            "primaryProfession": 1,
+        }
+    },
     {
         "$lookup": {
             "from": "title_principal",
@@ -19,7 +27,7 @@ giga_query = [
             "main_actor.primaryName": "$primaryName",
             "main_actor.birthYear": "$birthYear",
             "main_actor.deathYear": "$deathYear",
-            "main_actor.category": 1,
+            "main_actor.primaryProfession": "$primaryProfession",
             "movie_id": "$main_actor.movie_id",
         }
     },
@@ -32,7 +40,8 @@ giga_query = [
         }
     },
     {"$unwind": {"path": "$companion_actor", "preserveNullAndEmptyArrays": False}},
-    {"$unset": ["companion_actor._id", "companion_actor.movie_id"]},
+    {"$set": {"companion_actor.primaryProfession": "$companion_actor.category"}},
+    {"$unset": ["companion_actor._id", "companion_actor.movie_id", "companion_actor.category"]},
     {"$match": {"$expr": {"$ne": ["$main_actor.actor_id", "$companion_actor.actor_id"]}}},
     {
         "$lookup": {
@@ -78,7 +87,7 @@ giga_query = [
             "main_actor": 1,
             "count": 1,
             "companion_actor.actor_id": "$_id",
-            "companion_actor.category": "$ca_category",
+            "companion_actor.primaryProfession": "$ca_primaryProfession",
             "companion_actor.primaryName": "$ca_primaryName",
             "companion_actor.birthYear": "$ca_birthYear",
             "companion_actor.deathYear": "$ca_deathYear",
@@ -104,6 +113,12 @@ def actor_relations_query(actor_name):
 def get_actor_relations(actor_name, db):
     pipeline = actor_relations_query(actor_name)
     return list(db["name_basics"].aggregate(pipeline))
+
+
+def get_actor_info_basic(actor_name, db):
+    pipeline = [{"$match": {"$text": {"$search": f'"{actor_name}"'}}}]
+    actor_info = list(db["name_basics"].aggregate(pipeline))
+    return actor_info
 
 
 def get_random_actor(db):
