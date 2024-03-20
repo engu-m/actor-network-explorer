@@ -1,67 +1,53 @@
-
-.face{
-background-color: #fcd31d;
-}
-
-.eye {
-background-color: white;
-font-size: 10px;
-text-indent: -9999em;
-overflow: hidden;
-width: 1em;
-height: 1em;
-border-radius: 50%;
-animation: round 1s infinite linear;
-/* background-color: red; */
-box-shadow: 0em 3em 0 1em;
-z-index: 50;
-}
-
-.mouth {
-background-color: white;
-font-size: 10px;
-text-indent: -9999em;
-overflow: hidden;
-width: 1em;
-height: 1em;
-z-index: 50;
-}
-
 .load_container {
-border: 2px solid black;
-display: flex;
-justify-content: center;
-align-items: center;
-position: relative;
-overflow: hidden;
-box-sizing: border-box;
-border-radius: 50%;
+  /* border: 2px solid black; */
+  /* border-radius: 50%; */
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.frow{
-display: flex;
-flex-direction: row;
-justify-content: space-evenly;
-align-items: center;
+
+.emoji {
+  color: #000000;
+  font-size: 30vh;
+  /* margin: 80px auto; */
+  position: relative;
+  /* text-indent: -9999em; */
+  -webkit-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  transform: translateZ(0);
+  /* -webkit-animation-delay: -0.16s;
+  animation-delay: -0.16s; */
+}
+.emoji:before,
+.emoji:after {
+  --size: 0.15em;
+  border-radius: 50%;
+  width: var(--size);
+  height: var(--size);
+  --eye-horizontal: 0.42em;
+  --eye-vertical: 0.6em;
+  content: '';
+  background-color: rgb(255, 255, 255);
+  position: absolute;
+  top: 0;
+  animation: round 1.7s infinite linear;
+  box-shadow: 0 0.12em 0 -0.034em;
+}
+.emoji:before {
+    left: var(--eye-horizontal);
+    top: var(--eye-vertical);
+    animation-direction: reverse;
+}
+.emoji:after {
+    right: var(--eye-horizontal);
+    top: var(--eye-vertical);
 }
 
-.fcol{
-display: flex;
-flex-direction: column;
-justify-content: center;
-align-items: stretch;
-}
-
-.big{
-/* column-gap: 50px; */
-width: 500px;
-height: 500px;
-}
-.small{
-background-color: white;
-width: 120px;
-height: 120px;
-}
 
 @keyframes round {
 0% {

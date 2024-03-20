@@ -9,17 +9,17 @@ mouth = html.Div(
 )
 
 
-app.layout = html.Div(
+rolling_emoji = html.Div(
     [
         html.Div(
-            [
-                html.Div([eye, eye], className="frow"),
-                html.Div(mouth, className="frow"),
-            ],
-            className="load_container big fcol face",
+            "😲",
+            className="emoji",
         ),
-    ]
+    ],
+    className="load_container",
 )
+
+app.layout = rolling_emoji
 
 
 if __name__ == "__main__":
