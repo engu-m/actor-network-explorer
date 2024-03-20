@@ -244,13 +244,48 @@ app.layout = dbc.Container(
                         [
                             dcc.Tab(
                                 html.Div([add_remove_actor_panel, filter_panel, info_panel]),
-                                label="Update",
+                                label="Main",
                                 value="tab-1",
+                            ),
+                            dcc.Tab(
+                                html.Div(["Full graph",
+                                        html.Pre(
+                                            "",
+                                            id="debug-info",
+                                            style={
+                                                "overflow-y": "scroll",
+                                                "height": "calc(33% - 5px)",
+                                                "border": "thin lightgrey solid",
+                                            },
+                                        ),
+                                        "Node info",
+                                        html.Pre(
+                                            "",
+                                            id="debug-info-node",
+                                            style={
+                                                "overflow-y": "scroll",
+                                                "height": "calc(33% - 5px)",
+                                                "border": "thin lightgrey solid",
+                                            },
+                                        ),
+                                        "Edge info",
+                                        html.Pre(
+                                            "",
+                                            id="debug-info-edge",
+                                            style={
+                                                "overflow-y": "scroll",
+                                                "height": "calc(33% - 5px)",
+                                                "border": "thin lightgrey solid",
+                                            },
+                                        ),],
+                                    style={"height": "500px"},
+                                        ),
+                                label="Info",
+                                value="tab-2",
                             ),
                             dcc.Tab(
                                 html.Div(
                                     [
-                                        "Layout",
                                         dcc.Dropdown(
                                             id="dropdown-layout",
                                             options=[
@@ -280,44 +315,15 @@ app.layout = dbc.Container(
                                             ),
                                             clearable=False,
                                         ),
-                                        "Full graph",
-                                        html.Pre(
-                                            "",
-                                            id="debug-info",
-                                            style={
-                                                "overflow-y": "scroll",
-                                                "height": "calc(33% - 5px)",
-                                                "border": "thin lightgrey solid",
-                                            },
-                                        ),
-                                        "Node info",
-                                        html.Pre(
-                                            "",
-                                            id="debug-info-node",
-                                            style={
-                                                "overflow-y": "scroll",
-                                                "height": "calc(33% - 5px)",
-                                                "border": "thin lightgrey solid",
-                                            },
-                                        ),
-                                        "Edge info",
-                                        html.Pre(
-                                            "",
-                                            id="debug-info-edge",
-                                            style={
-                                                "overflow-y": "scroll",
-                                                "height": "calc(33% - 5px)",
-                                                "border": "thin lightgrey solid",
-                                            },
-                                        ),
+                                        
                                     ],
                                     style={"height": "500px"},
                                 ),
-                                label="Debug",
-                                value="tab-2",
+                                label="Layout",
+                                value="tab-3",
                             ),
                         ],
-                        value="tab-2",
+                        value="tab-3",
                     ),
                     md=3,
                 ),
