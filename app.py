@@ -47,7 +47,7 @@ add_remove_actor_panel = dbc.Card(
                 dbc.Label("Add actors to the graph", html_for="actor_add"),
                 dbc.InputGroup(
                     [
-                        dbc.Input(id="actor_add", type="text", placeholder="Will Smith"),
+                        dbc.Input(id="actor_add", type="text", value="Will Smith"),
                         dbc.Button(id="actor_add_button", children="Add", color="success"),
                     ]
                 ),
@@ -173,7 +173,7 @@ info_modal = html.Div(
                         ),
                     ],
                     id="modal",
-                    is_open=True,
+                    is_open=False,
                     size="lg",
                 ),
             ],
@@ -347,7 +347,7 @@ def toggle_modal(n1, n2, is_open):
     Input("actor_add", "n_submit"),
     State("actor_add", "value"),
     State("cyto_graph", "elements"),
-    prevent_initial_call=True,
+    prevent_initial_call="initial_duplicate",
 )
 def add_actor(nclicks, nsubmit, actor, elements):
     """Clicking the green Add btn or pressing the key enter when
