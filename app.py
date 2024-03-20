@@ -1,13 +1,16 @@
+import json
+import os
+
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
+import dotenv
+import numpy as np
 from dash import Dash, Input, Output, Patch, State, dcc, html
 from dash.exceptions import PreventUpdate
-import numpy as np
-
-import json
 
 from db import database
-from queries import get_actor_relations, get_random_actor, get_actor_info_basic
+from debug import tabs
+from queries import get_actor_info_basic, get_actor_relations, get_random_actor
 from style import default_stylesheet
 from utils import (
     get_degrees,
@@ -17,6 +20,10 @@ from utils import (
     get_single_node_info,
     rm_node_ids,
 )
+
+dotenv.load_dotenv(override=True)
+
+DEBUG = bool(os.getenv("DEBUG"))
 
 cyto.load_extra_layouts()
 
@@ -173,7 +180,7 @@ info_modal = html.Div(
                         ),
                     ],
                     id="modal",
-                    is_open=False,
+                    is_open=not DEBUG,
                     size="lg",
                 ),
             ],
@@ -240,92 +247,7 @@ app.layout = dbc.Container(
                     md=9,
                 ),
                 dbc.Col(
-                    dcc.Tabs(
-                        [
-                            dcc.Tab(
-                                html.Div([add_remove_actor_panel, filter_panel, info_panel]),
-                                label="Main",
-                                value="tab-1",
-                            ),
-                            dcc.Tab(
-                                html.Div(["Full graph",
-                                        html.Pre(
-                                            "",
-                                            id="debug-info",
-                                            style={
-                                                "overflow-y": "scroll",
-                                                "height": "calc(33% - 5px)",
-                                                "border": "thin lightgrey solid",
-                                            },
-                                        ),
-                                        "Node info",
-                                        html.Pre(
-                                            "",
-                                            id="debug-info-node",
-                                            style={
-                                                "overflow-y": "scroll",
-                                                "height": "calc(33% - 5px)",
-                                                "border": "thin lightgrey solid",
-                                            },
-                                        ),
-                                        "Edge info",
-                                        html.Pre(
-                                            "",
-                                            id="debug-info-edge",
-                                            style={
-                                                "overflow-y": "scroll",
-                                                "height": "calc(33% - 5px)",
-                                                "border": "thin lightgrey solid",
-                                            },
-                                        ),],
-                                    style={"height": "500px"},
-                                        ),
-                                label="Info",
-                                value="tab-2",
-                            ),
-                            dcc.Tab(
-                                html.Div(
-                                    [
-                                        dcc.Dropdown(
-                                            id="dropdown-layout",
-                                            options=[
-                                                "random",
-                                                "grid",
-                                                "circle",
-                                                "concentric",
-                                                "breadthfirst",
-                                                "cose",
-                                                "cose-bilkent",
-                                                "fcose",
-                                                "cola",
-                                                "euler",
-                                                "spread",
-                                                "dagre",
-                                                "klay",
-                                            ],
-                                            value=np.random.choice(
-                                                [
-                                                    # "cose",
-                                                    "cose-bilkent",
-                                                    "fcose",
-                                                    "cola",
-                                                    "euler",
-                                                    "spread",
-                                                ]
-                                            ),
-                                            clearable=False,
-                                        ),
-                                        
-                                    ],
-                                    style={"height": "500px"},
-                                ),
-                                label="Layout",
-                                value="tab-3",
-                            ),
-                        ],
-                        value="tab-3",
-                    ),
-                    md=3,
+                    tabs([add_remove_actor_panel, filter_panel, info_panel], debug=DEBUG), md="3"
                 ),
             ],
             align="center",
@@ -353,7 +275,7 @@ def toggle_modal(n1, n2, is_open):
     Input("actor_add", "n_submit"),
     State("actor_add", "value"),
     State("cyto_graph", "elements"),
-    prevent_initial_call="initial_duplicate",
+    prevent_initial_call="initial_duplicate" if DEBUG else True,
 )
 def add_actor(nclicks, nsubmit, actor, elements):
     """Clicking the green Add btn or pressing the key enter when
@@ -577,4 +499,4 @@ def update_debug_panel_edge(edges_data):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=DEBUG)
