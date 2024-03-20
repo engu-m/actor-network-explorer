@@ -1,0 +1,75 @@
+
+.face{
+background-color: #fcd31d;
+}
+
+.eye {
+background-color: white;
+font-size: 10px;
+text-indent: -9999em;
+overflow: hidden;
+width: 1em;
+height: 1em;
+border-radius: 50%;
+animation: round 1s infinite linear;
+/* background-color: red; */
+box-shadow: 0em 3em 0 1em;
+z-index: 50;
+}
+
+.mouth {
+background-color: white;
+font-size: 10px;
+text-indent: -9999em;
+overflow: hidden;
+width: 1em;
+height: 1em;
+z-index: 50;
+}
+
+.load_container {
+border: 2px solid black;
+display: flex;
+justify-content: center;
+align-items: center;
+position: relative;
+overflow: hidden;
+box-sizing: border-box;
+border-radius: 50%;
+}
+
+.frow{
+display: flex;
+flex-direction: row;
+justify-content: space-evenly;
+align-items: center;
+}
+
+.fcol{
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: stretch;
+}
+
+.big{
+/* column-gap: 50px; */
+width: 500px;
+height: 500px;
+}
+.small{
+background-color: white;
+width: 120px;
+height: 120px;
+}
+
+@keyframes round {
+0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+}
+100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+}
+}
