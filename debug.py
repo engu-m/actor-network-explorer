@@ -56,13 +56,13 @@ def myPre(id, clipboard_text):
             html.Pre(
                 "",
                 id=id,
-                className="overflow-auto my-0",
-                style={
-                    "height": "calc(30% - 8px)",
-                    "border": "thin lightgrey solid",
-                },
             ),
-        ]
+        ],
+        style={
+            "height": "calc(30% - 8px)",
+            "border": "thin lightgrey solid",
+        },
+        className="overflow-auto my-0",
     )
 
 
