@@ -4,12 +4,11 @@ import os
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
 import dotenv
-import numpy as np
-from dash import Dash, Input, Output, Patch, State, dcc, html
+from dash import Dash, Input, Output, Patch, State, dcc, html, ctx
 from dash.exceptions import PreventUpdate
 
 from db import database
-from debug import tabs
+from debug import tabs, built_layouts, layout_filters
 from queries import get_actor_info_basic, get_actor_relations, get_random_actor
 from style import default_stylesheet
 from utils import (
@@ -483,14 +482,59 @@ def displayEdgeData(data_edges, elements):
     return html.Div(full_data)
 
 
-@app.callback(Output(cyto_graph, "layout"), Input("dropdown-layout", "value"))
-def update_cytoscape_layout(layout):
-    return {"name": layout}
+generic_parameters = ["name", "animate", "animationDuration", "fit", "padding"]
 
 
-@app.callback(Output("debug-info", "children"), Input(cyto_graph, "elements"))
-@app.callback(Output("debug-info-node", "children"), Input(cyto_graph, "selectedNodeData"))
-@app.callback(Output("debug-info-edge", "children"), Input(cyto_graph, "selectedEdgeData"))
+@app.callback(
+    Output("layout_specific_parameters", "children"), Input("layout-generic-name", "value")
+)
+def update_cytoscape_layout_name(name):
+    additional_parameters = built_layouts.get(name, html.Div())
+    return additional_parameters
+
+
+def update_cytoscape_layout_generic(**dico):
+    changed_component_id = ctx.triggered_id
+
+    # when app init, update everything
+    if changed_component_id is None:
+        return dico
+
+    # else update only changed property
+    changed_property = changed_component_id.split("-")[-1]
+    layout_dict = Patch()
+    layout_dict[changed_property] = dico[changed_property]
+
+    return layout_dict
+
+
+_ = app.callback(
+    Output(cyto_graph, "layout", allow_duplicate=True),
+    inputs={param: Input(f"layout-generic-{param}", "value") for param in generic_parameters},
+    prevent_initial_call="initial_duplicate",
+)(update_cytoscape_layout_generic)
+
+
+for layout_name in layout_filters.keys():
+    app.callback(
+        Output(cyto_graph, "layout", allow_duplicate=True),
+        inputs={
+            param: Input(f"layout-{layout_name}-{param}", "value")
+            for param in layout_filters[f"{layout_name}"]
+        },
+        prevent_initial_call="initial_duplicate",
+    )(update_cytoscape_layout_generic)
+
+
+@app.callback(
+    Output("copy_paste_layout", "content"),
+    Input("copy_paste_layout", "n_clicks"),
+    State(cyto_graph, "layout"),
+)
+def custom_copy(_, layout_dict):
+    return str(layout_dict)
+
+
 def update_debug_panel(elements):
     return json.dumps(elements, indent=2, ensure_ascii=False)
 
