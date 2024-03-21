@@ -1,51 +1,34 @@
-.load_container {
-  /* border: 2px solid black; */
-  /* border-radius: 50%; */
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-
 .emoji {
   color: #000000;
   font-size: 30vh;
-  /* margin: 80px auto; */
-  position: relative;
-  /* text-indent: -9999em; */
+  position: absolute;
   -webkit-transform: translateZ(0);
   -ms-transform: translateZ(0);
   transform: translateZ(0);
-  /* -webkit-animation-delay: -0.16s;
-  animation-delay: -0.16s; */
+  text-align: center;
 }
 .emoji:before,
 .emoji:after {
-  --size: 0.15em;
+  --size: 0.155em;
   border-radius: 50%;
   width: var(--size);
   height: var(--size);
-  --eye-horizontal: 0.42em;
-  --eye-vertical: 0.6em;
+  --eye-horizontal: 0.416em;
+  --eye-vertical: 0.597em;
   content: '';
   background-color: rgb(255, 255, 255);
   position: absolute;
   top: 0;
   animation: round 1.7s infinite linear;
-  box-shadow: 0 0.12em 0 -0.034em;
+  box-shadow: 0 0.12em 0 -0.04em;
+  top: var(--eye-vertical);
 }
 .emoji:before {
     left: var(--eye-horizontal);
-    top: var(--eye-vertical);
     animation-direction: reverse;
 }
 .emoji:after {
     right: var(--eye-horizontal);
-    top: var(--eye-vertical);
 }
 
 

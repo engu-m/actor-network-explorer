@@ -1,4 +1,4 @@
-from dash import Dash, html
+from dash import Dash, html, dcc
 import dash_bootstrap_components as dbc
 
 app = Dash(__name__)
@@ -10,13 +10,8 @@ mouth = html.Div(
 
 
 rolling_emoji = html.Div(
-    [
-        html.Div(
-            "😲",
-            className="emoji",
-        ),
-    ],
-    className="load_container",
+    "😲",
+    className="emoji",
 )
 
 app.layout = rolling_emoji
