@@ -105,8 +105,8 @@ info_panel = dbc.Card(
         ),
     ],
     body=True,
-    className="my-2",
-    style={"overflow-y": "scroll", "max-height": "33vh"},
+    className="my-2 overflow-auto",
+    style={"max-height": "33vh"},
 )
 
 info_modal = html.Div(
@@ -242,15 +242,20 @@ app.layout = dbc.Container(
                             modebar,
                             info_modal,
                         ],
-                        className="border border-dark rounded m-4 position-relative",
+                        className="border border-dark rounded my-4 position-relative",
                     ),
                     md=9,
                 ),
                 dbc.Col(
-                    tabs([add_remove_actor_panel, filter_panel, info_panel], debug=DEBUG), md="3"
+                    html.Div(
+                        tabs([add_remove_actor_panel, filter_panel, info_panel], debug=DEBUG),
+                        className="mt-4 overflow-auto",
+                        style={"border": "1px solid #d6d6d6"},
+                    ),
+                    md="3",
                 ),
             ],
-            align="center",
+            align="start",
         ),
     ],
     fluid=True,

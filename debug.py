@@ -14,33 +14,33 @@ def tabs(prod_panels, debug):
                 dcc.Tab(
                     html.Div(
                         [
-                            "Full graph",
+                            myClipboard("debug-info", "Full graph"),
                             html.Pre(
                                 "",
                                 id="debug-info",
+                                className="overflow-auto my-0",
                                 style={
-                                    "overflow-y": "scroll",
-                                    "height": "calc(33% - 5px)",
+                                    "height": "calc(30% - 8px)",
                                     "border": "thin lightgrey solid",
                                 },
                             ),
-                            "Node info",
+                            myClipboard("debug-info-node", "Node info"),
                             html.Pre(
                                 "",
                                 id="debug-info-node",
+                                className="overflow-auto my-0",
                                 style={
-                                    "overflow-y": "scroll",
-                                    "height": "calc(33% - 5px)",
+                                    "height": "calc(30% - 8px)",
                                     "border": "thin lightgrey solid",
                                 },
                             ),
-                            "Edge info",
+                            myClipboard("debug-info-edge", "Edge info"),
                             html.Pre(
                                 "",
                                 id="debug-info-edge",
+                                className="overflow-auto my-0",
                                 style={
-                                    "overflow-y": "scroll",
-                                    "height": "calc(33% - 5px)",
+                                    "height": "calc(30% - 8px)",
                                     "border": "thin lightgrey solid",
                                 },
                             ),
