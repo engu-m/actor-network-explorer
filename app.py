@@ -489,18 +489,10 @@ def update_cytoscape_layout(layout):
 
 
 @app.callback(Output("debug-info", "children"), Input(cyto_graph, "elements"))
+@app.callback(Output("debug-info-node", "children"), Input(cyto_graph, "selectedNodeData"))
+@app.callback(Output("debug-info-edge", "children"), Input(cyto_graph, "selectedEdgeData"))
 def update_debug_panel(elements):
     return json.dumps(elements, indent=2, ensure_ascii=False)
-
-
-@app.callback(Output("debug-info-node", "children"), Input(cyto_graph, "selectedNodeData"))
-def update_debug_panel_node(nodes_data):
-    return json.dumps(nodes_data, indent=2, ensure_ascii=False)
-
-
-@app.callback(Output("debug-info-edge", "children"), Input(cyto_graph, "selectedEdgeData"))
-def update_debug_panel_edge(edges_data):
-    return json.dumps(edges_data, indent=2, ensure_ascii=False)
 
 
 if __name__ == "__main__":
