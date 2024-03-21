@@ -495,5 +495,16 @@ def update_debug_panel(elements):
     return json.dumps(elements, indent=2, ensure_ascii=False)
 
 
+info_debug_func = app.callback(Output("debug-info", "children"), Input(cyto_graph, "elements"))(
+    update_debug_panel
+)
+node_debug_func = app.callback(
+    Output("debug-info-node", "children"), Input(cyto_graph, "selectedNodeData")
+)(update_debug_panel)
+edge_debug_func = app.callback(
+    Output("debug-info-edge", "children"), Input(cyto_graph, "selectedEdgeData")
+)(update_debug_panel)
+
+
 if __name__ == "__main__":
     app.run(debug=DEBUG)

@@ -1,5 +1,29 @@
 from dash import dcc, html
-import numpy as np
+
+def myPre(id, clipboard_text):
+    clipboard = html.Div(
+        [
+            dcc.Clipboard(id=f"{id}-clipboard", target_id=id),
+            clipboard_text,
+        ],
+        style={"display": "inline-flex"},
+    )
+
+    return html.Div(
+        [
+            clipboard,
+            html.Pre(
+                "",
+                id=id,
+                className="overflow-auto my-0",
+                style={
+                    "height": "calc(30% - 8px)",
+                    "border": "thin lightgrey solid",
+                },
+            ),
+        ]
+    )
+
 
 
 def tabs(prod_panels, debug):
@@ -14,40 +38,13 @@ def tabs(prod_panels, debug):
                 dcc.Tab(
                     html.Div(
                         [
-                            myClipboard("debug-info", "Full graph"),
-                            html.Pre(
-                                "",
-                                id="debug-info",
-                                className="overflow-auto my-0",
-                                style={
-                                    "height": "calc(30% - 8px)",
-                                    "border": "thin lightgrey solid",
-                                },
-                            ),
-                            myClipboard("debug-info-node", "Node info"),
-                            html.Pre(
-                                "",
-                                id="debug-info-node",
-                                className="overflow-auto my-0",
-                                style={
-                                    "height": "calc(30% - 8px)",
-                                    "border": "thin lightgrey solid",
-                                },
-                            ),
-                            myClipboard("debug-info-edge", "Edge info"),
-                            html.Pre(
-                                "",
-                                id="debug-info-edge",
-                                className="overflow-auto my-0",
-                                style={
-                                    "height": "calc(30% - 8px)",
-                                    "border": "thin lightgrey solid",
-                                },
-                            ),
+                            myPre("debug-info", "Full graph"),
+                            myPre("debug-info-node", "Node info"),
+                            myPre("debug-info-edge", "Edge info"),
                         ],
                         style={"height": "500px"},
                     ),
-                    label="Info",
+                    label="Elements",
                     value="tab-2",
                 ),
                 dcc.Tab(
