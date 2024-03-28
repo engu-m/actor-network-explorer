@@ -66,6 +66,24 @@ add_remove_actor_panel = dbc.Card(
     className="my-2",
 )
 
+
+def modebar_button(btn_id, fa_icon, btn_color, popover, btn_className=""):
+    button = dbc.Button(
+        children=html.I(className=f"fa-solid fa-{fa_icon} px-1", style={"color": "white"}),
+        id=btn_id,
+        color=btn_color,
+        className=btn_className,
+    )
+    popover = dbc.Popover(
+        popover,
+        target=btn_id,
+        body=True,
+        trigger="hover",
+        placement="top",
+    )
+    return button, popover
+
+
 filter_panel = dbc.Card(
     [
         html.Div(
@@ -114,11 +132,81 @@ info_modal = html.Div(
                 ),
                 dbc.Modal(
                     [
-                        dbc.ModalHeader(dbc.ModalTitle("Actor network explorer")),
+                        dbc.ModalHeader(dbc.ModalTitle("Co-stardom network")),
                         dbc.ModalBody(
-                            dcc.Markdown(
-                                open("helper.md", "rt", encoding="utf-8").read(),
-                                link_target="_blank",  # open links in new tab
+                            html.Div(
+                                [
+                                    html.P("Works best on Desktop"),
+                                    html.H3("Adding actors"),
+                                    html.P(
+                                        [
+                                            "Either search for your favorite actor in the appropriate input field and click ",
+                                            dbc.Button("Add", color="success", className="btn-sm"),
+                                            ", or hit ",
+                                            modebar_button("", "dice", "dark", "", "btn-sm")[0],
+                                            " to add a random actor.",
+                                        ]
+                                    ),
+                                    html.H3("Selecting actors/relationships"),
+                                    dcc.Markdown(
+                                        """You can click and drag nodes and edges anywhere. 
+A selected node will appear in red and a selected edge in black. 
+Selecting a node reveals the number of connections the actor currently has in the graph, 
+as well as basic personal information on the actor/actress. 
+Selecting an edge reveals the common movies these two actors have in the bottom right panel. 
+You can select simultaneously multiple nodes and edges with `Ctrl/Cmd+click` or with a click and drag rectangle box selection while holding `Ctrl/Cmd`."""
+                                    ),
+                                    html.H3("Removing actors"),
+                                    html.P(
+                                        [
+                                            "Hit ",
+                                            modebar_button("", "times", "danger", "", "btn-sm")[0],
+                                            " to remove everbody from the graph. ",
+                                            "Hit ",
+                                            modebar_button(
+                                                "", "trash-can", "warning", "", "btn-sm"
+                                            )[0],
+                                            " to remove the selected actors (those in red, default none). ",
+                                            "Hit ",
+                                            modebar_button("", "broom", "info", "", "btn-sm")[0],
+                                            " to clear actors with no relationships in the network. ",
+                                            "Alternatively, you can type the actor's name in the appropriate input field and hit ",
+                                            dbc.Button(
+                                                "Remove", color="danger", className="btn-sm"
+                                            ),
+                                            ".",
+                                        ]
+                                    ),
+                                    html.P(
+                                        [
+                                            "Instead of removing an actor, you can filter the view more easily with the automatic filtering text input ",
+                                            dbc.Button(
+                                                children=html.I(
+                                                    className="fa-solid fa-filter px-1"
+                                                ),
+                                                color="light",
+                                                className="btn-sm",
+                                            ),
+                                            ".",
+                                        ]
+                                    ),
+                                    html.H3("Credit"),
+                                    dcc.Markdown(
+                                        """Disclaimer: the dataset is not exhaustive, some movies/actors may be missing.
+
+The code lives [on my github](https://github.com/engu-m) (with other cool projects).
+Datasets downloaded and edited from [IMDb](https://developer.imdb.com/non-commercial-datasets/).
+Database stored in [MongoDB](https://https://www.mongodb.com/).
+Interface using [Dash](https://dash.plotly.com/), [Dash Bootstrap Components](https://dash-bootstrap-components.opensource.faculty.ai/) and [Dash Cytoscape](https://dash.plotly.com/cytoscape).
+Favicon: [Share icons created by Smashicons - Flaticon](https://www.flaticon.com/free-icons/share).
+Deployed with [Koyeb](https://koyeb.com).
+
+---
+
+© Enguerrand Monard, 2024""",
+                                        style={"white-space": "pre-line"},
+                                    ),
+                                ]
                             ),
                         ),
                         dbc.ModalFooter(
@@ -140,22 +228,6 @@ info_modal = html.Div(
         "left": "0px",
     },
 )
-
-
-def modebar_button(btn_id, fa_icon, btn_color, popover):
-    button = dbc.Button(
-        children=html.I(className=f"fa-solid fa-{fa_icon} px-1", style={"color": "white"}),
-        id=btn_id,
-        color=btn_color,
-    )
-    popover = dbc.Popover(
-        popover,
-        target=btn_id,
-        body=True,
-        trigger="hover",
-        placement="top",
-    )
-    return button, popover
 
 
 modebar = html.Div(
