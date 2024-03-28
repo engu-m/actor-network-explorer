@@ -1,10 +1,15 @@
+import json
+import os
+
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
-from dash import Dash, Input, Output, Patch, State, dcc, html
+import dotenv
+from dash import Dash, Input, Output, Patch, State, dcc, html, ctx
 from dash.exceptions import PreventUpdate
 
 from db import database
-from queries import get_actor_relations, get_random_actor, get_actor_info_basic
+from debug import tabs, built_layouts, layout_filters
+from queries import get_actor_info_basic, get_actor_relations, get_random_actor
 from style import default_stylesheet
 from utils import (
     get_degrees,
@@ -14,6 +19,10 @@ from utils import (
     get_single_node_info,
     rm_node_ids,
 )
+
+dotenv.load_dotenv(override=True)
+
+DEBUG = bool(os.getenv("DEBUG"))
 
 cyto.load_extra_layouts()
 
@@ -44,7 +53,7 @@ add_remove_actor_panel = dbc.Card(
                 dbc.Label("Add actors to the graph", html_for="actor_add"),
                 dbc.InputGroup(
                     [
-                        dbc.Input(id="actor_add", type="text", placeholder="Will Smith"),
+                        dbc.Input(id="actor_add", type="text", value="Will Smith"),
                         dbc.Button(id="actor_add_button", children="Add", color="success"),
                     ]
                 ),
@@ -113,8 +122,8 @@ info_panel = dbc.Card(
         ),
     ],
     body=True,
-    className="my-2",
-    style={"overflow-y": "scroll", "max-height": "33vh"},
+    className="my-2 overflow-auto",
+    style={"max-height": "33vh"},
 )
 
 info_modal = html.Div(
@@ -216,7 +225,7 @@ Deployed with [Koyeb](https://koyeb.com).
                         ),
                     ],
                     id="modal",
-                    is_open=True,
+                    is_open=not DEBUG,
                     size="lg",
                 ),
             ],
@@ -262,16 +271,20 @@ app.layout = dbc.Container(
                             modebar,
                             info_modal,
                         ],
-                        className="border border-dark rounded m-4 position-relative",
+                        className="border border-dark rounded my-4 position-relative",
                     ),
                     md=9,
                 ),
                 dbc.Col(
-                    html.Div([add_remove_actor_panel, filter_panel, info_panel]),
-                    md=3,
+                    html.Div(
+                        tabs([add_remove_actor_panel, filter_panel, info_panel], debug=DEBUG),
+                        className="mt-4 overflow-auto",
+                        style={"border": "1px solid #d6d6d6"},
+                    ),
+                    md="3",
                 ),
             ],
-            align="center",
+            align="start",
         ),
     ],
     fluid=True,
@@ -296,7 +309,7 @@ def toggle_modal(n1, n2, is_open):
     Input("actor_add", "n_submit"),
     State("actor_add", "value"),
     State("cyto_graph", "elements"),
-    prevent_initial_call=True,
+    prevent_initial_call="initial_duplicate" if DEBUG else True,
 )
 def add_actor(nclicks, nsubmit, actor, elements):
     """Clicking the green Add btn or pressing the key enter when
@@ -499,5 +512,73 @@ def displayEdgeData(data_edges, elements):
     return html.Div(full_data)
 
 
+generic_parameters = ["name", "animate", "animationDuration", "fit", "padding"]
+
+
+@app.callback(
+    Output("layout_specific_parameters", "children"), Input("layout-generic-name", "value")
+)
+def update_cytoscape_layout_name(name):
+    additional_parameters = built_layouts.get(name, html.Div())
+    return additional_parameters
+
+
+def update_cytoscape_layout_generic(**dico):
+    changed_component_id = ctx.triggered_id
+
+    # when app init, update everything
+    if changed_component_id is None:
+        return dico
+
+    # else update only changed property
+    changed_property = changed_component_id.split("-")[-1]
+    layout_dict = Patch()
+    layout_dict[changed_property] = dico[changed_property]
+
+    return layout_dict
+
+
+_ = app.callback(
+    Output(cyto_graph, "layout", allow_duplicate=True),
+    inputs={param: Input(f"layout-generic-{param}", "value") for param in generic_parameters},
+    prevent_initial_call="initial_duplicate",
+)(update_cytoscape_layout_generic)
+
+
+for layout_name in layout_filters.keys():
+    app.callback(
+        Output(cyto_graph, "layout", allow_duplicate=True),
+        inputs={
+            param: Input(f"layout-{layout_name}-{param}", "value")
+            for param in layout_filters[f"{layout_name}"]
+        },
+        prevent_initial_call="initial_duplicate",
+    )(update_cytoscape_layout_generic)
+
+
+@app.callback(
+    Output("copy_paste_layout", "content"),
+    Input("copy_paste_layout", "n_clicks"),
+    State(cyto_graph, "layout"),
+)
+def custom_copy(_, layout_dict):
+    return str(layout_dict)
+
+
+def update_debug_panel(elements):
+    return json.dumps(elements, indent=2, ensure_ascii=False)
+
+
+info_debug_func = app.callback(Output("debug-info", "children"), Input(cyto_graph, "elements"))(
+    update_debug_panel
+)
+node_debug_func = app.callback(
+    Output("debug-info-node", "children"), Input(cyto_graph, "selectedNodeData")
+)(update_debug_panel)
+edge_debug_func = app.callback(
+    Output("debug-info-edge", "children"), Input(cyto_graph, "selectedEdgeData")
+)(update_debug_panel)
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=DEBUG)
