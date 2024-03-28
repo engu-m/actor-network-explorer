@@ -286,7 +286,7 @@ app.layout = dbc.Container(
                             modebar,
                             info_modal,
                         ],
-                        className="border border-dark rounded my-4 position-relative",
+                        className="border border-dark rounded m-4 position-relative",
                     ),
                     md=9,
                 ),
