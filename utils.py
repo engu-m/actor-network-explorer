@@ -67,8 +67,6 @@ def get_single_edge_info(data_edge, elements):
         [
             f"{data_edge['source']} <---> {data_edge['target']}",
             html.Br(),
-            data_edge["id"],
-            html.Br(),
             lines[0],
             html.Br(),
             html_lines,
