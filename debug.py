@@ -192,6 +192,26 @@ layout_filters = {
                 "value": True,
             },
         },
+        # Whether to include labels in node dimensions. Valid in "proof" quality
+        "nodeDimensionsIncludeLabels": {
+            "type": mySwitch,
+            "parameters": {
+                "value": False,
+            },
+        },
+        # Whether or not simple nodes (non-compound nodes) are of uniform dimensions
+        "uniformNodeDimensions": {
+            "type": mySwitch,
+            "parameters": {
+                "value": False,
+            },
+        },
+        "packComponents": {
+            "type": mySwitch,
+            "parameters": {
+                "value": True,
+            },
+        },
         # Sample size to construct distance matrix
         "sampleSize": {"type": mySlider, "parameters": {"value": 25}},
         "animationThreshold": {"type": mySlider, "parameters": {"value": 250}},
@@ -204,6 +224,9 @@ layout_filters = {
         "nestingFactor": {"type": mySlider, "parameters": {"value": 0.1}},
         # Maximum number of iterations to perform - this is a suggested value and might be adjusted by the algorithm as required
         "numIter": {"type": mySlider, "parameters": {"value": 2500}},
+        "nodeRepulsion": {"type": mySlider, "parameters": {"value": 4500}},
+        "idealEdgeLength": {"type": mySlider, "parameters": {"value": 50}},
+        "edgeElasticity": {"type": mySlider, "parameters": {"value": 0.45}},
         # For enabling tiling
         "tile": {
             "type": mySwitch,
@@ -455,7 +478,7 @@ def tabs(prod_panels, debug):
                                                 id="layout-generic-name",
                                                 options=[
                                                     "cose",
-                                                    "cose-bilkent",
+                                                    "cose-blikent",
                                                     "fcose",
                                                     "cola",
                                                     "euler",
