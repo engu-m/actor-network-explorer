@@ -36,8 +36,23 @@ server = app.server
 
 cyto_graph = cyto.Cytoscape(
     id="cyto_graph",
-    # TODO : find optimal layout and parameters with sliders in dev branch
-    layout={"name": "fcose", "animate": "end"},
+    layout={
+        "name": "fcose",
+        "animate": True,
+        "fit": True,
+        "padding": 20,
+        "quality": "proof",
+        "nodeDimensionsIncludeLabels": False,
+        "samplingType": False,
+        "sampleSize": 25,
+        "nodeSeparation": 75,
+        "nodeRepulsion": 6000,
+        "edgeElasticity": 0.45,
+        "idealEdgeLength": 50,
+        "gravityRange": 1.9,
+        "gravity": 0.25,
+        "initialEnergyOnIncremental": 0.3,
+    },
     stylesheet=default_stylesheet,
     minZoom=1 / 30,
     maxZoom=30,
@@ -188,7 +203,7 @@ You can select simultaneously multiple nodes and edges with `Ctrl/Cmd+click` or 
                                     ),
                                     html.P(
                                         [
-                                            "Instead of removing an actor, you can filter the view more easily with the automatic filtering text input ",
+                                            "Instead of removing an actor, you can filter the view more easily with the filtering text input ",
                                             dbc.Button(
                                                 children=html.I(
                                                     className="fa-solid fa-filter px-1"
