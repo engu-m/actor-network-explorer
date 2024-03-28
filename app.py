@@ -32,7 +32,7 @@ cyto_graph = cyto.Cytoscape(
     stylesheet=default_stylesheet,
     minZoom=1 / 30,
     maxZoom=30,
-    style={"width": "100%", "height": "600px"},
+    style={"width": "100%", "height": "max(600px,90vh)"},
     wheelSensitivity=0.1,
     boxSelectionEnabled=True,
 )
