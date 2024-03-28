@@ -31,7 +31,7 @@ app = Dash(
     __name__,
     external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.FONT_AWESOME],
 )
-app.title = "Actor network explorer"
+app.title = "Co-stardom network"
 server = app.server
 
 cyto_graph = cyto.Cytoscape(
