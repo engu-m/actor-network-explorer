@@ -279,7 +279,6 @@ app.layout = dbc.Container(
                     html.Div(
                         tabs([add_remove_actor_panel, filter_panel, info_panel], debug=DEBUG),
                         className="mt-4 overflow-auto",
-                        style={"border": "1px solid #d6d6d6"},
                     ),
                     md="3",
                 ),
