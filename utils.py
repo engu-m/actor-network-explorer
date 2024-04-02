@@ -3,17 +3,6 @@ from dash import html
 from formatting import edge_string, node_string
 
 
-def rm_node_ids(ids_to_remove, elements):
-    """Also removes obsolete edges"""
-    for ele in elements[:]:  # make a copy of elements
-        if ele["data"]["id"] in ids_to_remove:
-            # remove node
-            elements.remove(ele)
-        if ele["data"].get("source") in ids_to_remove or ele["data"].get("target") in ids_to_remove:
-            elements.remove(ele)
-    return elements
-
-
 def get_nodes(elements):
     return list(filter(lambda x: not x["data"].get("source"), elements))
 
