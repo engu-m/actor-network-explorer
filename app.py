@@ -20,7 +20,8 @@ from utils import (
 
 dotenv.load_dotenv(override=True)
 
-DEBUG = bool(os.getenv("DEBUG"))
+dash_debug_str = os.getenv("DASH_DEBUG")
+DASH_DEBUG = True if dash_debug_str == "true" else False
 
 cyto.load_extra_layouts()
 
@@ -242,7 +243,7 @@ Deployed with [Koyeb](https://koyeb.com).
                         ),
                     ],
                     id="modal",
-                    is_open=not DEBUG,
+                    is_open=not DASH_DASH_DEBUG,
                     size="lg",
                 ),
             ],
@@ -312,7 +313,7 @@ app.layout = dbc.Container(
                 ),
                 dbc.Col(
                     html.Div(
-                        tabs([add_remove_actor_panel, filter_panel, info_panel], debug=DEBUG),
+                        tabs([add_remove_actor_panel, filter_panel, info_panel], debug=DASH_DEBUG),
                         className="mt-4 overflow-auto",
                     ),
                     md="3",
@@ -391,7 +392,7 @@ def toggle_modal(n1, n2, is_open):
     State("actor_add", "value"),
     State("cyto_graph", "elements"),
     State("alert-container", "children"),
-    prevent_initial_call="initial_duplicate" if DEBUG else True,
+    prevent_initial_call="initial_duplicate" if DASH_DEBUG else True,
 )
 def add_actor(nclicks, nsubmit, actor, elements, alert_container):
     """Clicking the green Add btn or pressing the key enter when
@@ -716,4 +717,4 @@ edge_debug_func = app.callback(
 
 
 if __name__ == "__main__":
-    app.run(debug=DEBUG)
+    app.run()
