@@ -54,7 +54,7 @@ cyto_graph = cyto.Cytoscape(
     stylesheet=default_stylesheet,
     minZoom=1 / 30,
     maxZoom=30,
-    style={"width": "100%", "height": "max(600px,90vh)"},
+    style={"width": "clamp(50px, 100%, 2000px)", "height": "clamp(200px, 90vh, 1000px)"},
     wheelSensitivity=0.1,
     boxSelectionEnabled=True,
 )
@@ -295,7 +295,7 @@ app.layout = dbc.Container(
             [
                 html.Div(
                     alerts,
-                    style={"width": "33vw", "z-index": "1200"},
+                    style={"width": "clamp(200px,33vw,500px)", "z-index": "1200"},
                     className="position-fixed top-0 end-0 m-1",
                     id="alert-container",
                 ),
