@@ -168,7 +168,11 @@ info_modal = html.Div(
                                             dbc.Button("Add", color="success", className="btn-sm"),
                                             ", or hit ",
                                             modebar_button("", "dice", "dark", "", "btn-sm")[0],
-                                            " to add a random actor.",
+                                            " to add a random actor. To add the relationships of an actor already present on the network, select his node and hit ",
+                                            modebar_button(
+                                                "", "user-plus", "success", "", "btn-sm"
+                                            )[0],
+                                            ".",
                                         ]
                                     ),
                                     html.H3("Selecting actors/relationships"),
@@ -259,6 +263,9 @@ modebar = html.Div(
         dbc.ButtonGroup(
             [
                 *modebar_button("btn-add-random-actor", "dice", "dark", "Add random actor"),
+                *modebar_button(
+                    "btn-expand-seleted-nodes", "user-plus", "success", "Expand selected nodes"
+                ),
                 *modebar_button("btn-rm-lonely-nodes", "broom", "info", "Remove lonely nodes"),
                 *modebar_button(
                     "btn-rm-selected-nodes", "trash-can", "warning", "Remove selected nodes"
@@ -483,6 +490,20 @@ def generate_filtered_stylesheet(filter_input, elements):
 def add_random_actor(_, elements):
     random_actor = get_random_actor(database)
     elements = add_actor(None, None, random_actor, elements)
+    return elements
+
+
+@app.callback(
+    Output("cyto_graph", "elements", allow_duplicate=True),
+    Input("btn-expand-seleted-nodes", "n_clicks"),
+    State("cyto_graph", "selectedNodeData"),
+    State("cyto_graph", "elements"),
+    prevent_initial_call=True,
+)
+def expand_selected_actors(_, data_nodes, elements):
+    for data_element in data_nodes:
+        actor = data_element["id"]
+        elements = add_actor(None, None, actor, elements)
     return elements
 
 
