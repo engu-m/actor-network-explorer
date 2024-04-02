@@ -5,7 +5,6 @@ import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
 import dotenv
 from dash import Dash, Input, Output, Patch, State, dcc, html, ctx
-from dash.exceptions import PreventUpdate
 
 from db import database
 from debug import tabs, built_layouts, layout_filters
@@ -17,7 +16,6 @@ from utils import (
     get_nodes,
     get_single_edge_info,
     get_single_node_info,
-    rm_node_ids,
 )
 
 dotenv.load_dotenv(override=True)
@@ -282,10 +280,25 @@ modebar = html.Div(
     },
 )
 
+
+def myAlert(message, color):
+    duration = 2000 if color == "warning" else 4000
+    return dbc.Alert(message, is_open=True, color=color, fade=True, duration=duration)
+
+
+alerts = []
+
+
 app.layout = dbc.Container(
     [
         dbc.Row(
             [
+                html.Div(
+                    alerts,
+                    style={"width": "33vw", "z-index": "1200"},
+                    className="position-fixed top-0 end-0 m-1",
+                    id="alert-container",
+                ),
                 dbc.Col(
                     html.Div(
                         [
@@ -312,6 +325,52 @@ app.layout = dbc.Container(
 )
 
 
+def rm_node_ids(ids_to_remove, elements, alert_container):
+    """Also removes obsolete edges"""
+    alert_accumulator = []
+    previous_elements_length = len(elements)
+    for ele in elements[:]:  # make a copy of elements
+        if ele["data"]["id"] in ids_to_remove:
+            # generate alert
+            alert_rm_node = myAlert(
+                f"Successfully removed {ele['data']['id']} from the network.", "success"
+            )
+            alert_accumulator.append(alert_rm_node)
+            # remove node
+            elements.remove(ele)
+        if ele["data"].get("source") in ids_to_remove or ele["data"].get("target") in ids_to_remove:
+            # remove edge
+            elements.remove(ele)
+
+    if len(alert_accumulator) > 8:
+        # prevent display of too many alerts at once
+        alert_rm_actors_summary = myAlert(
+            f"Successfully removed {len(alert_accumulator)} actors from the graph.", "success"
+        )
+        alert_container.append(alert_rm_actors_summary)
+    else:
+        # normal display of all alerts
+        alert_container += alert_accumulator
+
+    if previous_elements_length == len(elements):
+        # no actor was removed
+        if len(ids_to_remove) == 0:
+            one_or_many_message = ""
+        elif len(ids_to_remove) == 1:
+            one_or_many_message = f" Make sure {ids_to_remove[0]} is in the network."
+        else:
+            one_or_many_message = (
+                f" Make sure at least one of {', '.join(ids_to_remove)} is in the network."
+            )
+        alert_no_removal = myAlert(
+            f"No actor was removed from the network.{one_or_many_message}",
+            "warning",
+        )
+        alert_container.append(alert_no_removal)
+
+    return elements, alert_container
+
+
 @app.callback(
     Output("modal", "is_open"),
     Input("btn-helper-open", "n_clicks"),
@@ -326,13 +385,15 @@ def toggle_modal(n1, n2, is_open):
 
 @app.callback(
     Output("cyto_graph", "elements", allow_duplicate=True),
+    Output("alert-container", "children", allow_duplicate=True),
     Input("actor_add_button", "n_clicks"),
     Input("actor_add", "n_submit"),
     State("actor_add", "value"),
     State("cyto_graph", "elements"),
+    State("alert-container", "children"),
     prevent_initial_call="initial_duplicate" if DEBUG else True,
 )
-def add_actor(nclicks, nsubmit, actor, elements):
+def add_actor(nclicks, nsubmit, actor, elements, alert_container):
     """Clicking the green Add btn or pressing the key enter when
     the input is in focus adds the actor to the graph"""
     query_result = get_actor_relations(actor, database)
@@ -349,8 +410,11 @@ def add_actor(nclicks, nsubmit, actor, elements):
         # check actor exists
         if not actor_info:
             # actor not found
-            return elements
+            actor_not_found_alert = myAlert(f"{actor} not found in the database.", "danger")
+            alert_container.append(actor_not_found_alert)
+            return elements, alert_container
 
+        # solo actor
         for actor_entry in actor_info:
             actor_id = actor_entry["primaryName"]
             if actor_id not in [ele["data"]["id"] for ele in elements]:
@@ -361,7 +425,9 @@ def add_actor(nclicks, nsubmit, actor, elements):
                 node_info.update(actor_entry)
                 actor_to_add = {"data": node_info}
                 elements.append(actor_to_add)
-            return elements
+            alert_solo_node = myAlert(f"{actor} added, did not play with anyone else.", "warning")
+            alert_container.append(alert_solo_node)
+            return elements, alert_container
 
     for duo_data in query_result:
         # sort actors by alphabetical order
@@ -370,14 +436,14 @@ def add_actor(nclicks, nsubmit, actor, elements):
         )
 
         # add actors if not already there
-        for actor in (actor1, actor2):
-            actor_id = actor["primaryName"]
+        for actor_data in (actor1, actor2):
+            actor_id = actor_data["primaryName"]
             if actor_id not in [ele["data"]["id"] for ele in elements]:
                 node_info = {
-                    "id": actor["primaryName"],
-                    "label": actor["primaryName"],
+                    "id": actor_data["primaryName"],
+                    "label": actor_data["primaryName"],
                 }
-                node_info.update(actor)
+                node_info.update(actor_data)
                 actor_to_add = {"data": node_info}
                 elements.append(actor_to_add)
 
@@ -394,46 +460,65 @@ def add_actor(nclicks, nsubmit, actor, elements):
         if element_to_add not in elements:
             elements.append(element_to_add)
 
-    return elements
+    alert_added_actor = myAlert(
+        f"{actor} successfully added. {len(query_result)} connections added, if not already there.",
+        "success",
+    )
+    alert_container.append(alert_added_actor)
+    return elements, alert_container
 
 
 @app.callback(
     Output("cyto_graph", "elements", allow_duplicate=True),
+    Output("alert-container", "children", allow_duplicate=True),
     Input("btn-rm-all-nodes", "n_clicks"),
+    State("alert-container", "children"),
     prevent_initial_call=True,
 )
-def remove_all_nodes(_):
-    return []
+def remove_all_nodes(_, alert_container):
+    alert_rm_all_actors = myAlert("Successfully removed all actors", "success")
+    alert_container.append(alert_rm_all_actors)
+    return [], alert_container
 
 
 @app.callback(
     Output("cyto_graph", "elements", allow_duplicate=True),
+    Output("alert-container", "children", allow_duplicate=True),
     Input("actor_rm_button", "n_clicks"),
     Input("actor_rm", "n_submit"),
     State("actor_rm", "value"),
     State("cyto_graph", "elements"),
+    State("alert-container", "children"),
     prevent_initial_call=True,
 )
-def rm_actor(nclicks, nsubmit, actor, elements):
+def rm_actor_from_text(nclicks, nsubmit, actor, elements, alert_container):
     """Clicking the red Remove btn or pressing the key enter when
     the input is in focus removes the actor from the graph"""
-    if actor is None:
-        raise PreventUpdate
-    return rm_node_ids([actor.title()], elements)
+    actor_list = [actor] if actor is not None else []
+    return rm_node_ids(actor_list, elements, alert_container)
 
 
 @app.callback(
     Output("cyto_graph", "elements", allow_duplicate=True),
+    Output("alert-container", "children", allow_duplicate=True),
     Input("btn-rm-selected-nodes", "n_clicks"),
     State("cyto_graph", "selectedNodeData"),
     State("cyto_graph", "elements"),
+    State("alert-container", "children"),
     prevent_initial_call=True,
 )
-def rm_selected_nodes(_, selected_nodes, elements):
+def rm_selected_nodes(_, selected_nodes, elements, alert_container):
     if not selected_nodes:
-        raise PreventUpdate
-    ids_to_remove = [node["id"] for node in selected_nodes]
-    return rm_node_ids(ids_to_remove, elements)
+        ids_to_remove = []
+        alert_no_selected_actor = myAlert(
+            "No actor was removed from the network. Select a node before hitting the button.",
+            "warning",
+        )
+        alert_container.append(alert_no_selected_actor)
+        return elements, alert_container
+    else:
+        ids_to_remove = [node["id"] for node in selected_nodes]
+        return rm_node_ids(ids_to_remove, elements, alert_container)
 
 
 @app.callback(
@@ -483,40 +568,55 @@ def generate_filtered_stylesheet(filter_input, elements):
 
 @app.callback(
     Output("cyto_graph", "elements", allow_duplicate=True),
+    Output("alert-container", "children", allow_duplicate=True),
     Input("btn-add-random-actor", "n_clicks"),
     State("cyto_graph", "elements"),
+    State("alert-container", "children"),
     prevent_initial_call=True,
 )
-def add_random_actor(_, elements):
+def add_random_actor(_, elements, alert_container):
     random_actor = get_random_actor(database)
-    elements = add_actor(None, None, random_actor, elements)
-    return elements
+    elements, alert_container = add_actor(None, None, random_actor, elements, alert_container)
+    return elements, alert_container
 
 
 @app.callback(
     Output("cyto_graph", "elements", allow_duplicate=True),
+    Output("alert-container", "children", allow_duplicate=True),
     Input("btn-expand-seleted-nodes", "n_clicks"),
     State("cyto_graph", "selectedNodeData"),
     State("cyto_graph", "elements"),
+    State("alert-container", "children"),
     prevent_initial_call=True,
 )
-def expand_selected_actors(_, data_nodes, elements):
+def expand_selected_actors(_, data_nodes, elements, alert_container):
+    # no actor was selected
+    if not data_nodes:
+        alert_no_selected_actor = myAlert(
+            "No actor was added to the network. Select a node before hitting the button.", "warning"
+        )
+        alert_container.append(alert_no_selected_actor)
+        return elements, alert_container
+
+    # else add all selected actors
     for data_element in data_nodes:
         actor = data_element["id"]
-        elements = add_actor(None, None, actor, elements)
-    return elements
+        elements, alert_container = add_actor(None, None, actor, elements, alert_container)
+    return elements, alert_container
 
 
 @app.callback(
     Output("cyto_graph", "elements", allow_duplicate=True),
+    Output("alert-container", "children", allow_duplicate=True),
     Input("btn-rm-lonely-nodes", "n_clicks"),
     State("cyto_graph", "elements"),
+    State("alert-container", "children"),
     prevent_initial_call=True,
 )
-def remove_lonely_actors(_, elements):
+def remove_lonely_actors(_, elements, alert_container):
     degrees = get_degrees(elements)
     lonely_nodes_ids = [id for id, deg in degrees.items() if deg == 0]
-    return rm_node_ids(lonely_nodes_ids, elements)
+    return rm_node_ids(lonely_nodes_ids, elements, alert_container)
 
 
 @app.callback(
