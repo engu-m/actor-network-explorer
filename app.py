@@ -36,7 +36,7 @@ server = app.server
 cyto_graph = cyto.Cytoscape(
     id="cyto_graph",
     layout={
-        "name": "euler,
+        "name": "euler",
     },
     # layout={
     #    "name": "fcose",
